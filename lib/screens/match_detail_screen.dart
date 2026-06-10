@@ -8,6 +8,7 @@ import '../widgets/match_stat_bar.dart';
 import '../widgets/shimmer_loading.dart';
 import '../core/constants.dart';
 import '../services/ad_service.dart';
+import '../services/espn_api.dart';
 
 class MatchDetailScreen extends ConsumerStatefulWidget {
   final String matchId;
@@ -49,7 +50,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
             return const Center(child: Text('Match not found'));
           }
           return DefaultTabController(
-            length: 3,
+            length: 4,
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Column(
@@ -65,6 +66,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                       Tab(text: 'Statistics'),
                       Tab(text: 'Timeline'),
                       Tab(text: 'Lineups'),
+                      Tab(text: 'H2H'),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -75,6 +77,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                         _buildStatsTab(match),
                         _buildTimelineTab(theme, match),
                         _buildLineupsTab(ref, match),
+                        _buildH2hTab(match),
                       ],
                     ),
                   )
@@ -410,6 +413,165 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, s) => Center(child: Text('Error: $e')),
+    );
+  }
+
+  Widget _buildH2hTab(Match match) {
+    final espnApi = ref.read(espnApiProvider);
+    final theme = Theme.of(context);
+
+    return FutureBuilder<List<H2hMeeting>>(
+      future: espnApi.fetchMatchSummary(match.id),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error loading H2H records: ${snapshot.error}'));
+        }
+
+        final meetings = snapshot.data ?? [];
+        if (meetings.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.history, size: 64, color: Colors.grey.withOpacity(0.5)),
+                const SizedBox(height: 16),
+                Text(
+                  'No historical head-to-head records found.',
+                  style: theme.textTheme.bodyLarge?.copyWith(color: Colors.grey),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: meetings.length,
+          itemBuilder: (context, index) {
+            final meeting = meetings[index];
+            final kickoffDate = DateTime.tryParse(meeting.date);
+            final formattedDate = kickoffDate != null
+                ? DateFormat('MMMM d, yyyy').format(kickoffDate)
+                : meeting.date;
+
+            // Determine meeting result badge color
+            Color badgeColor = Colors.grey;
+            if (meeting.result.toUpperCase() == 'W') {
+              badgeColor = Colors.green;
+            } else if (meeting.result.toUpperCase() == 'L') {
+              badgeColor = Colors.red;
+            } else if (meeting.result.toUpperCase() == 'D') {
+              badgeColor = Colors.amber;
+            }
+
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          meeting.competition,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: badgeColor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            meeting.result,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: badgeColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      formattedDate,
+                      style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                    ),
+                    const Divider(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Primary Team (from scoreboard perspective)
+                        Expanded(
+                          child: Text(
+                            meeting.isHome ? match.homeTeam.name : match.awayTeam.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        // Score
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            meeting.score,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ),
+                        // Opponent Team
+                        Expanded(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  meeting.opponentName,
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.end,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              if (meeting.opponentLogo.isNotEmpty)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: Image.network(
+                                    meeting.opponentLogo,
+                                    width: 28,
+                                    height: 20,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        const Icon(Icons.flag, size: 20),
+                                  ),
+                                )
+                              else
+                                const Icon(Icons.flag, size: 20),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

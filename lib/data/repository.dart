@@ -2,7 +2,9 @@ import 'dart:async';
 import '../models/match.dart';
 import '../models/team.dart';
 import '../models/player.dart';
+import '../services/espn_api.dart';
 import 'wc2026_data.dart';
+
 
 /// Abstract repository interface.
 abstract class DataRepository {
@@ -23,10 +25,29 @@ abstract class DataRepository {
 /// Standings are computed dynamically from matches.
 class MockDataRepository implements DataRepository {
   final List<Match> Function()? getMatches;
+  final EspnApiService? espnApi;
   final StreamController<List<Match>> _controller =
       StreamController<List<Match>>.broadcast();
 
-  MockDataRepository({this.getMatches});
+  final Map<String, List<Player>> _rosterCache = {};
+
+  MockDataRepository({this.getMatches, this.espnApi});
+
+  static const Map<String, String> _teamCodeToEspnId = {
+    'MEX': '203', 'RSA': '657', 'KOR': '451', 'CZE': '293',
+    'CAN': '448', 'BIH': '296', 'QAT': '461', 'SUI': '290',
+    'BRA': '205', 'MAR': '744', 'HAI': '381', 'SCO': '291',
+    'USA': '609', 'PAR': '208', 'AUS': '382', 'TUR': '294',
+    'GER': '272', 'CUW': '3057', 'CIV': '647', 'ECU': '209',
+    'NED': '275', 'JPN': '452', 'SWE': '288', 'TUN': '658',
+    'BEL': '284', 'EGY': '644', 'IRN': '463', 'NZL': '380',
+    'ESP': '289', 'CPV': '13197', 'SAU': '456', 'URU': '210',
+    'FRA': '278', 'SEN': '654', 'IRQ': '458', 'NOR': '281',
+    'ARG': '202', 'ALG': '642', 'AUT': '283', 'JOR': '459',
+    'POR': '287', 'COD': '646', 'UZB': '457', 'COL': '207',
+    'ENG': '277', 'CRO': '286', 'GHA': '645', 'PAN': '3865',
+  };
+
 
   static const Map<String, String> _teamGroups = {
     // Group A
@@ -301,6 +322,12 @@ class MockDataRepository implements DataRepository {
   @override
   Future<Player?> getPlayerById(String id) async {
     try {
+      // Search in cached rosters first
+      for (final roster in _rosterCache.values) {
+        for (final p in roster) {
+          if (p.id == id) return p;
+        }
+      }
       final all = await getPlayers();
       return all.firstWhere((p) => p.id == id);
     } catch (_) {
@@ -315,6 +342,22 @@ class MockDataRepository implements DataRepository {
       final team = teams.firstWhere(
         (t) => t.code.toUpperCase() == teamId.toUpperCase() || t.name.toUpperCase() == teamId.toUpperCase(),
       );
+      final cacheKey = team.code.toUpperCase();
+      if (_rosterCache.containsKey(cacheKey)) {
+        return _rosterCache[cacheKey]!;
+      }
+
+      if (espnApi != null) {
+        final espnId = _teamCodeToEspnId[cacheKey];
+        if (espnId != null) {
+          final roster = await espnApi!.fetchTeamRoster(espnId, team.code, team.name);
+          if (roster.isNotEmpty) {
+            _rosterCache[cacheKey] = roster;
+            return roster;
+          }
+        }
+      }
+
       WC2026Team? staticTeam;
       try {
         staticTeam = WC2026Data.teams.firstWhere(
@@ -322,15 +365,20 @@ class MockDataRepository implements DataRepository {
         );
       } catch (_) {}
 
+      List<Player> fallbackList;
       if (staticTeam != null && staticTeam.squad.isNotEmpty) {
-        return staticTeam.squad.map((p) => _mapPlayer(p, staticTeam!)).toList();
+        fallbackList = staticTeam.squad.map((p) => _mapPlayer(p, staticTeam!)).toList();
       } else {
-        return _generateDefaultPlayers(team);
+        fallbackList = _generateDefaultPlayers(team);
       }
+
+      _rosterCache[cacheKey] = fallbackList;
+      return fallbackList;
     } catch (_) {
       return [];
     }
   }
+
 
   @override
   Future<List<Match>> getUpcomingMatches() async => [];

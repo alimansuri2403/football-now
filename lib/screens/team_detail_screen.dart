@@ -149,7 +149,9 @@ class TeamDetailScreen extends ConsumerWidget {
               margin: const EdgeInsets.symmetric(vertical: 6),
               child: ListTile(
                 leading: CircleAvatar(
-                  child: Text('${p.number}'),
+                  backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                  backgroundImage: p.photoUrl.isNotEmpty ? NetworkImage(p.photoUrl) : null,
+                  child: p.photoUrl.isEmpty ? Text('${p.number}') : null,
                 ),
                 title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text('Age: ${p.age}'),

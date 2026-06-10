@@ -11,6 +11,7 @@ final espnApiProvider = Provider<EspnApiService>((ref) => EspnApiService());
 final repositoryProvider = Provider<DataRepository>((ref) {
   final repo = MockDataRepository(
     getMatches: () => ref.read(matchProvider).allMatches,
+    espnApi: ref.watch(espnApiProvider),
   );
   ref.onDispose(() => repo.dispose());
   return repo;
