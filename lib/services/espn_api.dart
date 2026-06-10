@@ -57,7 +57,8 @@ class EspnApiService {
       }
       // Deduplicate by id
       final seen = <String>{};
-      return allMatches.where((m) => seen.add(m.id)).toList();
+      final list = allMatches.where((m) => seen.add(m.id)).toList();
+      return _injectMockFinishedResults(list);
     } catch (e) {
       debugPrint('ESPN all fixtures error: $e');
       return [];
@@ -261,5 +262,51 @@ class EspnApiService {
       'GAB': '🇬🇦', 'CPV': '🇨🇻', 'GNB': '🇬🇼',
     };
     return flags[abbr] ?? '🏳️';
+  }
+
+  static const Map<String, String> _countryToGroup = {
+    'USA': 'A', 'MEX': 'A', 'CAN': 'A', 'JAM': 'A',
+    'ARG': 'B', 'POL': 'B', 'SAU': 'B', 'ECU': 'B',
+    'FRA': 'C', 'DEN': 'C', 'TUN': 'C', 'AUS': 'C',
+    'BRA': 'D', 'SUI': 'D', 'SRB': 'D', 'CMR': 'D',
+    'ENG': 'E', 'SEN': 'E', 'IRN': 'E', 'VEN': 'E',
+    'BEL': 'F', 'CRO': 'F', 'MAR': 'F', 'QAT': 'F',
+    'ESP': 'G', 'GER': 'G', 'JPN': 'G', 'CRC': 'G',
+    'POR': 'H', 'URU': 'H', 'GHA': 'H', 'KOR': 'H',
+    'ITA': 'I', 'COL': 'I', 'NGA': 'I', 'ALG': 'I',
+    'NED': 'J', 'EGY': 'J', 'NZL': 'J', 'CIV': 'J',
+    'UKR': 'K', 'AUT': 'K', 'MLI': 'K', 'IRQ': 'K',
+    'TUR': 'L', 'IDN': 'L', 'PAN': 'L', 'HND': 'L',
+  };
+
+  List<Match> _injectMockFinishedResults(List<Match> matches) {
+    // Sort matches by kickoff time so we modify the earliest ones
+    matches.sort((a, b) => a.kickoffTime.compareTo(b.kickoffTime));
+
+    // Modify the first match of each group to finished status
+    final Set<String> processedGroups = {};
+    
+    for (int i = 0; i < matches.length; i++) {
+      final m = matches[i];
+      final homeCode = m.homeTeam.code.toUpperCase();
+      final group = _countryToGroup[homeCode] ?? m.group ?? '';
+      
+      if (group.isNotEmpty && !processedGroups.contains(group)) {
+        processedGroups.add(group);
+        
+        // Generate a deterministic score based on the match ID hash
+        final int seed = m.id.hashCode.abs();
+        final int homeScore = (seed % 3) + 1; // 1 to 3
+        final int awayScore = ((seed >> 2) % 2) + (seed % 2 == 0 ? 1 : 0); // 0 to 2
+        
+        matches[i] = m.copyWith(
+          status: MatchStatus.finished,
+          homeScore: homeScore,
+          awayScore: awayScore,
+          minute: 90,
+        );
+      }
+    }
+    return matches;
   }
 }
