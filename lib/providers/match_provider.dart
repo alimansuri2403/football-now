@@ -9,7 +9,9 @@ final espnApiProvider = Provider<EspnApiService>((ref) => EspnApiService());
 
 // ── Repository for teams/players mock data ────────────────────────────────────
 final repositoryProvider = Provider<DataRepository>((ref) {
-  final repo = MockDataRepository();
+  final repo = MockDataRepository(
+    getMatches: () => ref.read(matchProvider).allMatches,
+  );
   ref.onDispose(() => repo.dispose());
   return repo;
 });
@@ -88,15 +90,29 @@ class MatchNotifier extends StateNotifier<MatchState> {
     });
   }
 
-  /// Full schedule + live scores fetch (used on startup and pull-to-refresh).
+  /// Full schedule fetch — called on startup and pull-to-refresh.
   Future<void> fetchMatches() async {
     if (!mounted) return;
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      // Fetch today's scoreboard (fast) — includes live, finished, upcoming
+      // Fetch entire tournament schedule (all 104 matches, June 11 – July 19)
+      final allFixtures = await _espn.fetchAllFixtures();
+
+      // Also get today's scoreboard to overlay live data
       final scoreboard = await _espn.fetchScoreboard();
 
-      final live = scoreboard
+      // Merge: fixture list is the base, today's live data overlays it
+      final Map<String, Match> merged = {
+        for (final m in allFixtures) m.id: m,
+      };
+      for (final m in scoreboard) {
+        merged[m.id] = m; // live data wins
+      }
+
+      final all = merged.values.toList()
+        ..sort((a, b) => a.kickoffTime.compareTo(b.kickoffTime));
+
+      final live = all
           .where((m) =>
               m.status == MatchStatus.live ||
               m.status == MatchStatus.halftime)
@@ -104,7 +120,7 @@ class MatchNotifier extends StateNotifier<MatchState> {
 
       if (!mounted) return;
       state = state.copyWith(
-        allMatches: scoreboard,
+        allMatches: all,
         liveMatches: live,
         isLoading: false,
         lastUpdated: DateTime.now(),
