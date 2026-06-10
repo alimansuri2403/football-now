@@ -256,7 +256,7 @@ class FootballApiService {
     );
 
     final state = fixture['status']?['short'] ?? 'NS';
-    MatchStatus status = MatchStatus.upcoming;
+    MatchStatus status = MatchStatus.scheduled;
     if (state == 'FT' || state == 'AET' || state == 'PEN') {
       status = MatchStatus.finished;
     } else if (state != 'NS' && state != 'TBD') {
@@ -270,12 +270,10 @@ class FootballApiService {
       homeScore: goals['home'] ?? 0,
       awayScore: goals['away'] ?? 0,
       status: status,
-      dateTime: DateTime.tryParse(fixture['date'] ?? '') ?? DateTime.now(),
+      kickoffTime: DateTime.tryParse(fixture['date'] ?? '') ?? DateTime.now(),
       venue: fixture['venue']?['name'] ?? 'Unknown Stadium',
       group: 'Group Stage',
-      currentMinute: fixture['status']?['elapsed'] ?? 0,
-      stats: const MatchStats.empty(),
-      events: const [],
+      minute: fixture['status']?['elapsed'],
     );
   }
 

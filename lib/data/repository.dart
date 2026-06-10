@@ -45,7 +45,7 @@ class MockDataRepository implements DataRepository {
             // Match finished
             return match.copyWith(
               status: MatchStatus.finished,
-              currentMinute: 90,
+              minute: 90,
             );
           }
 
@@ -114,7 +114,7 @@ class MockDataRepository implements DataRepository {
           );
 
           return match.copyWith(
-            currentMinute: nextMin,
+            minute: nextMin,
             homeScore: homeScore,
             awayScore: awayScore,
             events: events,
@@ -174,7 +174,7 @@ class MockDataRepository implements DataRepository {
 
   @override
   Future<List<Match>> getUpcomingMatches() async {
-    return _matches.where((m) => m.status == MatchStatus.upcoming).toList();
+    return _matches.where((m) => m.status == MatchStatus.scheduled).toList();
   }
 
   @override

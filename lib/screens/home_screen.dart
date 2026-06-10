@@ -280,7 +280,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (query.isEmpty) return true;
       return match.homeTeam.name.toLowerCase().contains(query) ||
           match.awayTeam.name.toLowerCase().contains(query) ||
-          match.group.toLowerCase().contains(query);
+          (match.group ?? "").toLowerCase().contains(query);
     }).toList();
 
     if (filtered.isEmpty) {
@@ -336,7 +336,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    match.group,
+                    match.group ?? '',
                     style: theme.textTheme.labelSmall?.copyWith(color: Colors.grey),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

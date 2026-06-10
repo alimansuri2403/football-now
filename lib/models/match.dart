@@ -1,6 +1,6 @@
 import 'team.dart';
 
-enum MatchStatus { live, upcoming, finished }
+enum MatchStatus { scheduled, live, halftime, finished, postponed }
 
 class Match {
   final String id;
@@ -9,12 +9,19 @@ class Match {
   final int homeScore;
   final int awayScore;
   final MatchStatus status;
-  final DateTime dateTime;
+  final DateTime kickoffTime;
   final String venue;
-  final String group;
-  final int currentMinute;
+  final String? group;
+  final String? city;
+  final String? stage;
+  final int? minute;
   final MatchStats stats;
   final List<MatchEvent> events;
+
+  /// Legacy alias for kickoffTime
+  DateTime get dateTime => kickoffTime;
+  /// Legacy alias for minute
+  int get currentMinute => minute ?? 0;
 
   const Match({
     required this.id,
@@ -23,19 +30,22 @@ class Match {
     required this.homeScore,
     required this.awayScore,
     required this.status,
-    required this.dateTime,
+    required this.kickoffTime,
     required this.venue,
-    required this.group,
-    this.currentMinute = 0,
-    required this.stats,
-    required this.events,
-  });
+    this.group,
+    this.city,
+    this.stage,
+    this.minute,
+    MatchStats? stats,
+    List<MatchEvent>? events,
+  })  : stats = stats ?? const MatchStats.empty(),
+        events = events ?? const [];
 
   Match copyWith({
     int? homeScore,
     int? awayScore,
     MatchStatus? status,
-    int? currentMinute,
+    int? minute,
     MatchStats? stats,
     List<MatchEvent>? events,
   }) {
@@ -46,10 +56,12 @@ class Match {
       homeScore: homeScore ?? this.homeScore,
       awayScore: awayScore ?? this.awayScore,
       status: status ?? this.status,
-      dateTime: dateTime,
+      kickoffTime: kickoffTime,
       venue: venue,
       group: group,
-      currentMinute: currentMinute ?? this.currentMinute,
+      city: city,
+      stage: stage,
+      minute: minute ?? this.minute,
       stats: stats ?? this.stats,
       events: events ?? this.events,
     );

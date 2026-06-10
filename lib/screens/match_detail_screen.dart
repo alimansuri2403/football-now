@@ -259,7 +259,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
   }
 
   Widget _buildStatsTab(Match match) {
-    if (match.status == MatchStatus.upcoming) {
+    if (match.status == MatchStatus.scheduled) {
       return const Center(child: Text('Statistics will be available when match starts.'));
     }
 

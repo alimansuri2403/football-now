@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import '../models/match.dart';
 import '../models/team.dart';
@@ -272,7 +274,7 @@ class SportmonksRepository implements DataRepository {
     final awayScore = scores.firstWhere((s) => s['description'] == 'CURRENT' && s['score']?['participant_id'] == awayData['id'], orElse: () => {})['score']?['goals'] ?? 0;
 
     final state = item['state']?['state'] ?? 'NS'; // NS = Not Started, LIVE = Live, FT = Finished
-    MatchStatus status = MatchStatus.upcoming;
+    MatchStatus status = MatchStatus.scheduled;
     if (state == 'LIVE') {
       status = MatchStatus.live;
     } else if (state == 'FT') {
@@ -286,10 +288,10 @@ class SportmonksRepository implements DataRepository {
       homeScore: homeScore,
       awayScore: awayScore,
       status: status,
-      dateTime: DateTime.tryParse(item['starting_at'] ?? '') ?? DateTime.now(),
+      kickoffTime: DateTime.tryParse(item['starting_at'] ?? '') ?? DateTime.now(),
       venue: item['venue']?['name'] ?? 'Unknown Stadium',
       group: 'Group Stage',
-      currentMinute: item['minute'] ?? 0,
+      minute: item['minute'] ?? 0,
       stats: const MatchStats.empty(),
       events: const [],
     );

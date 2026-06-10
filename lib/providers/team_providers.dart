@@ -14,8 +14,8 @@ final teamDetailProvider = FutureProvider.family<Team?, String>((ref, id) async 
 
 // Standings calculations by group name
 final groupStandingsProvider = FutureProvider.family<List<GroupStanding>, String>((ref, group) async {
-  final apiService = ref.watch(apiServiceProvider);
-  // Re-run whenever match state updates (periodic polling updates scores and triggers this)
+  // Re-run whenever match state updates
   ref.watch(matchProvider);
-  return apiService.fetchStandings(group);
+  final repo = ref.watch(repositoryProvider);
+  return repo.getGroupStandings(group);
 });

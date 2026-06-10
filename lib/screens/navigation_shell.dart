@@ -38,7 +38,7 @@ class NavigationShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final location = state.uri.path;
     final selectedIndex = _getSelectedIndex(location);
-    final themeMode = ref.watch(themeProvider);
+    final themeMode = ref.watch(themeModeProvider);
     final isDark = themeMode == ThemeMode.dark;
 
     return Scaffold(
@@ -64,7 +64,7 @@ class NavigationShell extends ConsumerWidget {
               color: Colors.amber,
             ),
             onPressed: () {
-              ref.read(themeProvider.notifier).toggleTheme();
+              ref.read(themeModeProvider.notifier).toggleTheme();
             },
             tooltip: 'Toggle Theme',
           ),

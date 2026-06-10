@@ -18,7 +18,6 @@ class _StandingsScreenState extends ConsumerState<StandingsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final apiService = ref.watch(apiServiceProvider);
 
     return Scaffold(
       body: SafeArea(
