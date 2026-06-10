@@ -30,29 +30,29 @@ class MockDataRepository implements DataRepository {
 
   static const Map<String, String> _teamGroups = {
     // Group A
-    'USA': 'A', 'MEX': 'A', 'CAN': 'A', 'JAM': 'A',
+    'MEX': 'A', 'RSA': 'A', 'KOR': 'A', 'CZE': 'A',
     // Group B
-    'ARG': 'B', 'POL': 'B', 'SAU': 'B', 'ECU': 'B',
+    'CAN': 'B', 'BIH': 'B', 'QAT': 'B', 'SUI': 'B',
     // Group C
-    'FRA': 'C', 'DEN': 'C', 'TUN': 'C', 'AUS': 'C',
+    'BRA': 'C', 'MAR': 'C', 'HAI': 'C', 'SCO': 'C',
     // Group D
-    'BRA': 'D', 'SUI': 'D', 'SRB': 'D', 'CMR': 'D',
+    'USA': 'D', 'PAR': 'D', 'AUS': 'D', 'TUR': 'D',
     // Group E
-    'ENG': 'E', 'SEN': 'E', 'IRN': 'E', 'VEN': 'E',
+    'GER': 'E', 'CUW': 'E', 'CIV': 'E', 'ECU': 'E',
     // Group F
-    'BEL': 'F', 'CRO': 'F', 'MAR': 'F', 'QAT': 'F',
+    'NED': 'F', 'JPN': 'F', 'SWE': 'F', 'TUN': 'F',
     // Group G
-    'ESP': 'G', 'GER': 'G', 'JPN': 'G', 'CRC': 'G',
+    'BEL': 'G', 'EGY': 'G', 'IRN': 'G', 'NZL': 'G',
     // Group H
-    'POR': 'H', 'URU': 'H', 'GHA': 'H', 'KOR': 'H',
+    'ESP': 'H', 'CPV': 'H', 'SAU': 'H', 'URU': 'H',
     // Group I
-    'ITA': 'I', 'COL': 'I', 'NGA': 'I', 'ALG': 'I',
+    'FRA': 'I', 'SEN': 'I', 'IRQ': 'I', 'NOR': 'I',
     // Group J
-    'NED': 'J', 'EGY': 'J', 'NZL': 'J', 'CIV': 'J',
+    'ARG': 'J', 'ALG': 'J', 'AUT': 'J', 'JOR': 'J',
     // Group K
-    'UKR': 'K', 'AUT': 'K', 'MLI': 'K', 'IRQ': 'K',
+    'POR': 'K', 'COD': 'K', 'UZB': 'K', 'COL': 'K',
     // Group L
-    'TUR': 'L', 'IDN': 'L', 'PAN': 'L', 'HND': 'L',
+    'ENG': 'L', 'CRO': 'L', 'GHA': 'L', 'PAN': 'L',
   };
 
   Team _mapTeam(WC2026Team t) {
@@ -132,15 +132,133 @@ class MockDataRepository implements DataRepository {
     return _teamGroups[teamCode.toUpperCase()] ?? '';
   }
 
+  String _mapLegacyCode(String code) {
+    if (code == 'SAU') return 'KSA';
+    if (code == 'KSA') return 'SAU';
+    return code;
+  }
+
+  List<Player> _generateDefaultPlayers(Team team) {
+    final List<Player> list = [];
+    final positions = ['GK', 'DEF', 'MID', 'FWD'];
+    final names = ['Captain', 'Striker', 'Playmaker', 'Defender', 'Goalie'];
+    
+    for (int i = 0; i < 11; i++) {
+      final name = '${team.name} Player ${i + 1}';
+      final pos = positions[i % positions.length];
+      
+      list.add(Player(
+        id: '${team.code}_${i + 1}',
+        name: name,
+        teamId: team.code,
+        teamName: team.name,
+        position: pos == 'GK' ? 'Goalkeeper' : (pos == 'DEF' ? 'Defender' : (pos == 'MID' ? 'Midfielder' : 'Forward')),
+        number: i + 1,
+        age: 22 + (i % 8),
+        photoUrl: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=150&q=80',
+        rating: 70 + (i % 15),
+        pastRecords: const [],
+        stats: PlayerStats(
+          goals: i % 4 == 0 ? 1 : 0,
+          assists: i % 3 == 0 ? 1 : 0,
+          yellowCards: 0,
+          redCards: 0,
+          minutesPlayed: 180,
+          matchesPlayed: 2,
+        ),
+      ));
+    }
+    return list;
+  }
+
   @override
   Future<List<Team>> getTeams() async {
     final List<Team> list = [];
-    final Set<String> seen = {};
-    for (final t in WC2026Data.teams) {
-      final code = t.code.toUpperCase();
-      if (_teamGroups.containsKey(code) && seen.add(code)) {
-        list.add(_mapTeam(t));
-      }
+    
+    final List<Map<String, String>> espnTeams = [
+      {'code': 'MEX', 'name': 'Mexico', 'flag': 'mx', 'group': 'A'},
+      {'code': 'RSA', 'name': 'South Africa', 'flag': 'za', 'group': 'A'},
+      {'code': 'KOR', 'name': 'South Korea', 'flag': 'kr', 'group': 'A'},
+      {'code': 'CZE', 'name': 'Czechia', 'flag': 'cz', 'group': 'A'},
+      
+      {'code': 'CAN', 'name': 'Canada', 'flag': 'ca', 'group': 'B'},
+      {'code': 'BIH', 'name': 'Bosnia and Herzegovina', 'flag': 'ba', 'group': 'B'},
+      {'code': 'QAT', 'name': 'Qatar', 'flag': 'qa', 'group': 'B'},
+      {'code': 'SUI', 'name': 'Switzerland', 'flag': 'ch', 'group': 'B'},
+      
+      {'code': 'BRA', 'name': 'Brazil', 'flag': 'br', 'group': 'C'},
+      {'code': 'MAR', 'name': 'Morocco', 'flag': 'ma', 'group': 'C'},
+      {'code': 'HAI', 'name': 'Haiti', 'flag': 'ht', 'group': 'C'},
+      {'code': 'SCO', 'name': 'Scotland', 'flag': 'gb-sct', 'group': 'C'},
+      
+      {'code': 'USA', 'name': 'USA', 'flag': 'us', 'group': 'D'},
+      {'code': 'PAR', 'name': 'Paraguay', 'flag': 'py', 'group': 'D'},
+      {'code': 'AUS', 'name': 'Australia', 'flag': 'au', 'group': 'D'},
+      {'code': 'TUR', 'name': 'Türkiye', 'flag': 'tr', 'group': 'D'},
+      
+      {'code': 'GER', 'name': 'Germany', 'flag': 'de', 'group': 'E'},
+      {'code': 'CUW', 'name': 'Curaçao', 'flag': 'cw', 'group': 'E'},
+      {'code': 'CIV', 'name': 'Ivory Coast', 'flag': 'ci', 'group': 'E'},
+      {'code': 'ECU', 'name': 'Ecuador', 'flag': 'ec', 'group': 'E'},
+      
+      {'code': 'NED', 'name': 'Netherlands', 'flag': 'nl', 'group': 'F'},
+      {'code': 'JPN', 'name': 'Japan', 'flag': 'jp', 'group': 'F'},
+      {'code': 'SWE', 'name': 'Sweden', 'flag': 'se', 'group': 'F'},
+      {'code': 'TUN', 'name': 'Tunisia', 'flag': 'tn', 'group': 'F'},
+      
+      {'code': 'BEL', 'name': 'Belgium', 'flag': 'be', 'group': 'G'},
+      {'code': 'EGY', 'name': 'Egypt', 'flag': 'eg', 'group': 'G'},
+      {'code': 'IRN', 'name': 'Iran', 'flag': 'ir', 'group': 'G'},
+      {'code': 'NZL', 'name': 'New Zealand', 'flag': 'nz', 'group': 'G'},
+      
+      {'code': 'ESP', 'name': 'Spain', 'flag': 'es', 'group': 'H'},
+      {'code': 'CPV', 'name': 'Cabo Verde', 'flag': 'cv', 'group': 'H'},
+      {'code': 'SAU', 'name': 'Saudi Arabia', 'flag': 'sa', 'group': 'H'},
+      {'code': 'URU', 'name': 'Uruguay', 'flag': 'uy', 'group': 'H'},
+      
+      {'code': 'FRA', 'name': 'France', 'flag': 'fr', 'group': 'I'},
+      {'code': 'SEN', 'name': 'Senegal', 'flag': 'sn', 'group': 'I'},
+      {'code': 'IRQ', 'name': 'Iraq', 'flag': 'iq', 'group': 'I'},
+      {'code': 'NOR', 'name': 'Norway', 'flag': 'no', 'group': 'I'},
+      
+      {'code': 'ARG', 'name': 'Argentina', 'flag': 'ar', 'group': 'J'},
+      {'code': 'ALG', 'name': 'Algeria', 'flag': 'dz', 'group': 'J'},
+      {'code': 'AUT', 'name': 'Austria', 'flag': 'at', 'group': 'J'},
+      {'code': 'JOR', 'name': 'Jordan', 'flag': 'jo', 'group': 'J'},
+      
+      {'code': 'POR', 'name': 'Portugal', 'flag': 'pt', 'group': 'K'},
+      {'code': 'COD', 'name': 'DR Congo', 'flag': 'cd', 'group': 'K'},
+      {'code': 'UZB', 'name': 'Uzbekistan', 'flag': 'uz', 'group': 'K'},
+      {'code': 'COL', 'name': 'Colombia', 'flag': 'co', 'group': 'K'},
+      
+      {'code': 'ENG', 'name': 'England', 'flag': 'gb-eng', 'group': 'L'},
+      {'code': 'CRO', 'name': 'Croatia', 'flag': 'hr', 'group': 'L'},
+      {'code': 'GHA', 'name': 'Ghana', 'flag': 'gh', 'group': 'L'},
+      {'code': 'PAN', 'name': 'Panama', 'flag': 'pa', 'group': 'L'},
+    ];
+
+    for (final et in espnTeams) {
+      final code = et['code']!;
+      final name = et['name']!;
+      final flag = et['flag']!;
+      final group = et['group']!;
+      
+      WC2026Team? staticTeam;
+      try {
+        staticTeam = WC2026Data.teams.firstWhere(
+          (t) => t.code.toUpperCase() == code || t.code.toUpperCase() == _mapLegacyCode(code)
+        );
+      } catch (_) {}
+
+      list.add(Team(
+        id: code,
+        name: name,
+        code: code,
+        flagCode: flag,
+        group: group,
+        fifaRanking: staticTeam?.fifaRanking ?? 50,
+        coach: staticTeam?.coach ?? 'Head Coach',
+      ));
     }
     return list;
   }
@@ -160,13 +278,21 @@ class MockDataRepository implements DataRepository {
   @override
   Future<List<Player>> getPlayers() async {
     final List<Player> players = [];
-    final Set<String> seenTeams = {};
-    for (final t in WC2026Data.teams) {
-      final code = t.code.toUpperCase();
-      if (_teamGroups.containsKey(code) && seenTeams.add(code)) {
-        for (final p in t.squad) {
-          players.add(_mapPlayer(p, t));
+    final teams = await getTeams();
+    for (final team in teams) {
+      WC2026Team? staticTeam;
+      try {
+        staticTeam = WC2026Data.teams.firstWhere(
+          (t) => t.code.toUpperCase() == team.code || t.code.toUpperCase() == _mapLegacyCode(team.code)
+        );
+      } catch (_) {}
+
+      if (staticTeam != null && staticTeam.squad.isNotEmpty) {
+        for (final p in staticTeam.squad) {
+          players.add(_mapPlayer(p, staticTeam));
         }
+      } else {
+        players.addAll(_generateDefaultPlayers(team));
       }
     }
     return players;
@@ -189,10 +315,18 @@ class MockDataRepository implements DataRepository {
       final team = teams.firstWhere(
         (t) => t.code.toUpperCase() == teamId.toUpperCase() || t.name.toUpperCase() == teamId.toUpperCase(),
       );
-      final t = WC2026Data.teams.firstWhere(
-        (wt) => wt.code.toUpperCase() == team.code.toUpperCase(),
-      );
-      return t.squad.map((p) => _mapPlayer(p, t)).toList();
+      WC2026Team? staticTeam;
+      try {
+        staticTeam = WC2026Data.teams.firstWhere(
+          (t) => t.code.toUpperCase() == team.code || t.code.toUpperCase() == _mapLegacyCode(team.code)
+        );
+      } catch (_) {}
+
+      if (staticTeam != null && staticTeam.squad.isNotEmpty) {
+        return staticTeam.squad.map((p) => _mapPlayer(p, staticTeam!)).toList();
+      } else {
+        return _generateDefaultPlayers(team);
+      }
     } catch (_) {
       return [];
     }

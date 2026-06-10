@@ -58,10 +58,14 @@ class EspnApiService {
       // Deduplicate by id
       final seen = <String>{};
       final list = allMatches.where((m) => seen.add(m.id)).toList();
+      if (list.isEmpty) {
+        debugPrint('ESPN all fixtures returned empty, using local fallback.');
+        return _generateLocalMockFixtures();
+      }
       return _injectMockFinishedResults(list);
     } catch (e) {
-      debugPrint('ESPN all fixtures error: $e');
-      return [];
+      debugPrint('ESPN all fixtures error: $e, using local fallback.');
+      return _generateLocalMockFixtures();
     }
   }
 
@@ -112,8 +116,10 @@ class EspnApiService {
     final awayTeamName = awayTeamData['displayName']?.toString() ??
         awayTeamData['shortDisplayName']?.toString() ?? 'TBD';
 
-    final homeAbbr = homeTeamData['abbreviation']?.toString() ?? 'HOM';
-    final awayAbbr = awayTeamData['abbreviation']?.toString() ?? 'AWY';
+    final homeAbbrRaw = homeTeamData['abbreviation']?.toString() ?? 'HOM';
+    final awayAbbrRaw = awayTeamData['abbreviation']?.toString() ?? 'AWY';
+    final homeAbbr = _normalizeAbbr(homeAbbrRaw);
+    final awayAbbr = _normalizeAbbr(awayAbbrRaw);
 
     final homeScore = int.tryParse(homeComp['score']?.toString() ?? '') ?? 0;
     final awayScore = int.tryParse(awayComp['score']?.toString() ?? '') ?? 0;
@@ -265,48 +271,346 @@ class EspnApiService {
   }
 
   static const Map<String, String> _countryToGroup = {
-    'USA': 'A', 'MEX': 'A', 'CAN': 'A', 'JAM': 'A',
-    'ARG': 'B', 'POL': 'B', 'SAU': 'B', 'ECU': 'B',
-    'FRA': 'C', 'DEN': 'C', 'TUN': 'C', 'AUS': 'C',
-    'BRA': 'D', 'SUI': 'D', 'SRB': 'D', 'CMR': 'D',
-    'ENG': 'E', 'SEN': 'E', 'IRN': 'E', 'VEN': 'E',
-    'BEL': 'F', 'CRO': 'F', 'MAR': 'F', 'QAT': 'F',
-    'ESP': 'G', 'GER': 'G', 'JPN': 'G', 'CRC': 'G',
-    'POR': 'H', 'URU': 'H', 'GHA': 'H', 'KOR': 'H',
-    'ITA': 'I', 'COL': 'I', 'NGA': 'I', 'ALG': 'I',
-    'NED': 'J', 'EGY': 'J', 'NZL': 'J', 'CIV': 'J',
-    'UKR': 'K', 'AUT': 'K', 'MLI': 'K', 'IRQ': 'K',
-    'TUR': 'L', 'IDN': 'L', 'PAN': 'L', 'HND': 'L',
+    // Group A
+    'MEX': 'A', 'RSA': 'A', 'KOR': 'A', 'CZE': 'A',
+    // Group B
+    'CAN': 'B', 'BIH': 'B', 'QAT': 'B', 'SUI': 'B',
+    // Group C
+    'BRA': 'C', 'MAR': 'C', 'HAI': 'C', 'SCO': 'C',
+    // Group D
+    'USA': 'D', 'PAR': 'D', 'AUS': 'D', 'TUR': 'D',
+    // Group E
+    'GER': 'E', 'CUW': 'E', 'CIV': 'E', 'ECU': 'E',
+    // Group F
+    'NED': 'F', 'JPN': 'F', 'SWE': 'F', 'TUN': 'F',
+    // Group G
+    'BEL': 'G', 'EGY': 'G', 'IRN': 'G', 'NZL': 'G',
+    // Group H
+    'ESP': 'H', 'CPV': 'H', 'SAU': 'H', 'URU': 'H',
+    // Group I
+    'FRA': 'I', 'SEN': 'I', 'IRQ': 'I', 'NOR': 'I',
+    // Group J
+    'ARG': 'J', 'ALG': 'J', 'AUT': 'J', 'JOR': 'J',
+    // Group K
+    'POR': 'K', 'COD': 'K', 'UZB': 'K', 'COL': 'K',
+    // Group L
+    'ENG': 'L', 'CRO': 'L', 'GHA': 'L', 'PAN': 'L',
   };
+
+  String _normalizeAbbr(String abbr) {
+    final map = {
+      'KSA': 'SAU',
+      'HON': 'HND',
+    };
+    return map[abbr.toUpperCase()] ?? abbr.toUpperCase();
+  }
 
   List<Match> _injectMockFinishedResults(List<Match> matches) {
     // Sort matches by kickoff time so we modify the earliest ones
     matches.sort((a, b) => a.kickoffTime.compareTo(b.kickoffTime));
 
-    // Modify the first match of each group to finished status
-    final Set<String> processedGroups = {};
+    final groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
     
+    // Helper to create Team objects
+    Team createTeam(String code, String name, String flagCode, String group) {
+      return Team(
+        id: code,
+        name: name,
+        code: code,
+        flagCode: flagCode,
+        group: group,
+        fifaRanking: 0,
+        coach: '',
+      );
+    }
+
+    final Map<String, List<Team>> groupTeams = {
+      'A': [
+        createTeam('MEX', 'Mexico', 'mx', 'A'),
+        createTeam('RSA', 'South Africa', 'za', 'A'),
+        createTeam('KOR', 'South Korea', 'kr', 'A'),
+        createTeam('CZE', 'Czechia', 'cz', 'A'),
+      ],
+      'B': [
+        createTeam('CAN', 'Canada', 'ca', 'B'),
+        createTeam('BIH', 'Bosnia and Herzegovina', 'ba', 'B'),
+        createTeam('QAT', 'Qatar', 'qa', 'B'),
+        createTeam('SUI', 'Switzerland', 'ch', 'B'),
+      ],
+      'C': [
+        createTeam('BRA', 'Brazil', 'br', 'C'),
+        createTeam('MAR', 'Morocco', 'ma', 'C'),
+        createTeam('HAI', 'Haiti', 'ht', 'C'),
+        createTeam('SCO', 'Scotland', 'gb-sct', 'C'),
+      ],
+      'D': [
+        createTeam('USA', 'USA', 'us', 'D'),
+        createTeam('PAR', 'Paraguay', 'py', 'D'),
+        createTeam('AUS', 'Australia', 'au', 'D'),
+        createTeam('TUR', 'Türkiye', 'tr', 'D'),
+      ],
+      'E': [
+        createTeam('GER', 'Germany', 'de', 'E'),
+        createTeam('CUW', 'Curaçao', 'cw', 'E'),
+        createTeam('CIV', 'Ivory Coast', 'ci', 'E'),
+        createTeam('ECU', 'Ecuador', 'ec', 'E'),
+      ],
+      'F': [
+        createTeam('NED', 'Netherlands', 'nl', 'F'),
+        createTeam('JPN', 'Japan', 'jp', 'F'),
+        createTeam('SWE', 'Sweden', 'se', 'F'),
+        createTeam('TUN', 'Tunisia', 'tn', 'F'),
+      ],
+      'G': [
+        createTeam('BEL', 'Belgium', 'be', 'G'),
+        createTeam('EGY', 'Egypt', 'eg', 'G'),
+        createTeam('IRN', 'Iran', 'ir', 'G'),
+        createTeam('NZL', 'New Zealand', 'nz', 'G'),
+      ],
+      'H': [
+        createTeam('ESP', 'Spain', 'es', 'H'),
+        createTeam('CPV', 'Cabo Verde', 'cv', 'H'),
+        createTeam('SAU', 'Saudi Arabia', 'sa', 'H'),
+        createTeam('URU', 'Uruguay', 'uy', 'H'),
+      ],
+      'I': [
+        createTeam('FRA', 'France', 'fr', 'I'),
+        createTeam('SEN', 'Senegal', 'sn', 'I'),
+        createTeam('IRQ', 'Iraq', 'iq', 'I'),
+        createTeam('NOR', 'Norway', 'no', 'I'),
+      ],
+      'J': [
+        createTeam('ARG', 'Argentina', 'ar', 'J'),
+        createTeam('ALG', 'Algeria', 'dz', 'J'),
+        createTeam('AUT', 'Austria', 'at', 'J'),
+        createTeam('JOR', 'Jordan', 'jo', 'J'),
+      ],
+      'K': [
+        createTeam('POR', 'Portugal', 'pt', 'K'),
+        createTeam('COD', 'DR Congo', 'cd', 'K'),
+        createTeam('UZB', 'Uzbekistan', 'uz', 'K'),
+        createTeam('COL', 'Colombia', 'co', 'K'),
+      ],
+      'L': [
+        createTeam('ENG', 'England', 'gb-eng', 'L'),
+        createTeam('CRO', 'Croatia', 'hr', 'L'),
+        createTeam('GHA', 'Ghana', 'gh', 'L'),
+        createTeam('PAN', 'Panama', 'pa', 'L'),
+      ],
+    };
+
     for (int i = 0; i < matches.length; i++) {
       final m = matches[i];
-      final homeCode = m.homeTeam.code.toUpperCase();
-      final group = _countryToGroup[homeCode] ?? m.group ?? '';
-      
-      if (group.isNotEmpty && !processedGroups.contains(group)) {
-        processedGroups.add(group);
+      if (i < 72) {
+        final groupIndex = i ~/ 6;
+        final matchInGroupIndex = i % 6;
+        final groupName = groups[groupIndex];
+        final teams = groupTeams[groupName]!;
+
+        Team home;
+        Team away;
+
+        switch (matchInGroupIndex) {
+          case 0:
+            home = teams[0];
+            away = teams[1];
+            break;
+          case 1:
+            home = teams[2];
+            away = teams[3];
+            break;
+          case 2:
+            home = teams[0];
+            away = teams[2];
+            break;
+          case 3:
+            home = teams[1];
+            away = teams[3];
+            break;
+          case 4:
+            home = teams[3];
+            away = teams[0];
+            break;
+          case 5:
+          default:
+            home = teams[1];
+            away = teams[2];
+            break;
+        }
+
+        // Make the first 2 matches of each group finished to show realistic standings
+        final bool isFinished = matchInGroupIndex < 2;
         
-        // Generate a deterministic score based on the match ID hash
-        final int seed = m.id.hashCode.abs();
-        final int homeScore = (seed % 3) + 1; // 1 to 3
-        final int awayScore = ((seed >> 2) % 2) + (seed % 2 == 0 ? 1 : 0); // 0 to 2
-        
-        matches[i] = m.copyWith(
-          status: MatchStatus.finished,
+        int homeScore = 0;
+        int awayScore = 0;
+        MatchStatus status = MatchStatus.scheduled;
+
+        if (isFinished) {
+          status = MatchStatus.finished;
+          // Deterministic score based on match index
+          final int seed = i.hashCode.abs();
+          homeScore = (seed % 3) + 1; // 1 to 3
+          awayScore = ((seed >> 2) % 2) + (seed % 2 == 0 ? 1 : 0); // 0 to 2
+        }
+
+        matches[i] = Match(
+          id: m.id,
+          homeTeam: home,
+          awayTeam: away,
           homeScore: homeScore,
           awayScore: awayScore,
-          minute: 90,
+          status: status,
+          kickoffTime: m.kickoffTime,
+          venue: m.venue,
+          city: m.city,
+          stage: m.stage,
+          minute: isFinished ? 90 : null,
+          group: groupName,
+          stats: m.stats,
+          events: m.events,
+        );
+      } else {
+        // Knockout matches: just clear group so they don't count towards standings
+        matches[i] = Match(
+          id: m.id,
+          homeTeam: m.homeTeam,
+          awayTeam: m.awayTeam,
+          homeScore: m.homeScore,
+          awayScore: m.awayScore,
+          status: m.status,
+          kickoffTime: m.kickoffTime,
+          venue: m.venue,
+          city: m.city,
+          stage: m.stage,
+          minute: m.minute,
+          group: null,
+          stats: m.stats,
+          events: m.events,
         );
       }
     }
     return matches;
+  }
+
+  List<Match> _generateLocalMockFixtures() {
+    final List<Match> list = [];
+    final startDate = DateTime(2026, 6, 11, 18, 0);
+    
+    // Helper to create simple empty Team
+    Team dummyTeam() => const Team(
+          id: '',
+          name: '',
+          code: '',
+          flagCode: '',
+          group: '',
+          fifaRanking: 0,
+          coach: '',
+        );
+
+    // 72 group stage matches
+    for (int i = 0; i < 72; i++) {
+      list.add(Match(
+        id: 'mock_group_$i',
+        homeTeam: dummyTeam(),
+        awayTeam: dummyTeam(),
+        homeScore: 0,
+        awayScore: 0,
+        status: MatchStatus.scheduled,
+        kickoffTime: startDate.add(Duration(hours: i * 4)),
+        venue: 'Stadium $i',
+        city: 'City $i',
+        stage: 'Group Stage',
+      ));
+    }
+
+    // 32 knockout matches (Round of 32, 16, Quarter-Final, Semi-Final, Third Place, Final)
+    // Round of 32: 16 matches
+    for (int i = 0; i < 16; i++) {
+      list.add(Match(
+        id: 'mock_r32_$i',
+        homeTeam: dummyTeam(),
+        awayTeam: dummyTeam(),
+        homeScore: 0,
+        awayScore: 0,
+        status: MatchStatus.scheduled,
+        kickoffTime: startDate.add(Duration(days: 16, hours: i * 6)),
+        venue: 'Stadium R32_$i',
+        city: 'City R32_$i',
+        stage: 'Round of 32',
+      ));
+    }
+    // Round of 16: 8 matches
+    for (int i = 0; i < 8; i++) {
+      list.add(Match(
+        id: 'mock_r16_$i',
+        homeTeam: dummyTeam(),
+        awayTeam: dummyTeam(),
+        homeScore: 0,
+        awayScore: 0,
+        status: MatchStatus.scheduled,
+        kickoffTime: startDate.add(Duration(days: 20, hours: i * 8)),
+        venue: 'Stadium R16_$i',
+        city: 'City R16_$i',
+        stage: 'Round of 16',
+      ));
+    }
+    // Quarter-Finals: 4 matches
+    for (int i = 0; i < 4; i++) {
+      list.add(Match(
+        id: 'mock_qf_$i',
+        homeTeam: dummyTeam(),
+        awayTeam: dummyTeam(),
+        homeScore: 0,
+        awayScore: 0,
+        status: MatchStatus.scheduled,
+        kickoffTime: startDate.add(Duration(days: 24, hours: i * 12)),
+        venue: 'Stadium QF_$i',
+        city: 'City QF_$i',
+        stage: 'Quarter-Final',
+      ));
+    }
+    // Semi-Finals: 2 matches
+    for (int i = 0; i < 2; i++) {
+      list.add(Match(
+        id: 'mock_sf_$i',
+        homeTeam: dummyTeam(),
+        awayTeam: dummyTeam(),
+        homeScore: 0,
+        awayScore: 0,
+        status: MatchStatus.scheduled,
+        kickoffTime: startDate.add(Duration(days: 28, hours: i * 24)),
+        venue: 'Stadium SF_$i',
+        city: 'City SF_$i',
+        stage: 'Semi-Final',
+      ));
+    }
+    // Third Place: 1 match
+    list.add(Match(
+      id: 'mock_3rd',
+      homeTeam: dummyTeam(),
+      awayTeam: dummyTeam(),
+      homeScore: 0,
+      awayScore: 0,
+      status: MatchStatus.scheduled,
+      kickoffTime: startDate.add(const Duration(days: 31, hours: 18)),
+      venue: 'Stadium 3rd',
+      city: 'City 3rd',
+      stage: 'Third Place',
+    ));
+    // Final: 1 match
+    list.add(Match(
+      id: 'mock_final',
+      homeTeam: dummyTeam(),
+      awayTeam: dummyTeam(),
+      homeScore: 0,
+      awayScore: 0,
+      status: MatchStatus.scheduled,
+      kickoffTime: startDate.add(const Duration(days: 32, hours: 18)),
+      venue: 'MetLife Stadium',
+      city: 'East Rutherford',
+      stage: 'Final',
+    ));
+
+    return _injectMockFinishedResults(list);
   }
 }
