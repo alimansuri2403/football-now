@@ -28,13 +28,42 @@ class MockDataRepository implements DataRepository {
 
   MockDataRepository({this.getMatches});
 
+  static const Map<String, String> _teamGroups = {
+    // Group A
+    'USA': 'A', 'MEX': 'A', 'CAN': 'A', 'JAM': 'A',
+    // Group B
+    'ARG': 'B', 'POL': 'B', 'SAU': 'B', 'ECU': 'B',
+    // Group C
+    'FRA': 'C', 'DEN': 'C', 'TUN': 'C', 'AUS': 'C',
+    // Group D
+    'BRA': 'D', 'SUI': 'D', 'SRB': 'D', 'CMR': 'D',
+    // Group E
+    'ENG': 'E', 'SEN': 'E', 'IRN': 'E', 'VEN': 'E',
+    // Group F
+    'BEL': 'F', 'CRO': 'F', 'MAR': 'F', 'QAT': 'F',
+    // Group G
+    'ESP': 'G', 'GER': 'G', 'JPN': 'G', 'CRC': 'G',
+    // Group H
+    'POR': 'H', 'URU': 'H', 'GHA': 'H', 'KOR': 'H',
+    // Group I
+    'ITA': 'I', 'COL': 'I', 'NGA': 'I', 'ALG': 'I',
+    // Group J
+    'NED': 'J', 'EGY': 'J', 'NZL': 'J', 'CIV': 'J',
+    // Group K
+    'UKR': 'K', 'AUT': 'K', 'MLI': 'K', 'IRQ': 'K',
+    // Group L
+    'TUR': 'L', 'IDN': 'L', 'PAN': 'L', 'HND': 'L',
+  };
+
   Team _mapTeam(WC2026Team t) {
+    final code = t.code.toUpperCase();
+    final group = _teamGroups[code] ?? t.group;
     return Team(
-      id: t.code,
+      id: code,
       name: t.name,
-      code: t.code,
+      code: code,
       flagCode: t.flagCode,
-      group: t.group,
+      group: group,
       fifaRanking: t.fifaRanking,
       coach: t.coach,
     );
@@ -100,28 +129,29 @@ class MockDataRepository implements DataRepository {
   }
 
   String _getTeamGroup(String teamCode) {
-    try {
-      final t = WC2026Data.teams.firstWhere(
-        (team) => team.code.toUpperCase() == teamCode.toUpperCase(),
-      );
-      return t.group;
-    } catch (_) {
-      return '';
-    }
+    return _teamGroups[teamCode.toUpperCase()] ?? '';
   }
 
   @override
   Future<List<Team>> getTeams() async {
-    return WC2026Data.teams.map(_mapTeam).toList();
+    final List<Team> list = [];
+    final Set<String> seen = {};
+    for (final t in WC2026Data.teams) {
+      final code = t.code.toUpperCase();
+      if (_teamGroups.containsKey(code) && seen.add(code)) {
+        list.add(_mapTeam(t));
+      }
+    }
+    return list;
   }
 
   @override
   Future<Team?> getTeamById(String id) async {
     try {
-      final t = WC2026Data.teams.firstWhere(
-        (team) => team.code.toUpperCase() == id.toUpperCase() || team.name.toUpperCase() == id.toUpperCase(),
+      final teams = await getTeams();
+      return teams.firstWhere(
+        (t) => t.code.toUpperCase() == id.toUpperCase() || t.name.toUpperCase() == id.toUpperCase(),
       );
-      return _mapTeam(t);
     } catch (_) {
       return null;
     }
@@ -130,9 +160,13 @@ class MockDataRepository implements DataRepository {
   @override
   Future<List<Player>> getPlayers() async {
     final List<Player> players = [];
+    final Set<String> seenTeams = {};
     for (final t in WC2026Data.teams) {
-      for (final p in t.squad) {
-        players.add(_mapPlayer(p, t));
+      final code = t.code.toUpperCase();
+      if (_teamGroups.containsKey(code) && seenTeams.add(code)) {
+        for (final p in t.squad) {
+          players.add(_mapPlayer(p, t));
+        }
       }
     }
     return players;
@@ -151,8 +185,12 @@ class MockDataRepository implements DataRepository {
   @override
   Future<List<Player>> getPlayersByTeam(String teamId) async {
     try {
+      final teams = await getTeams();
+      final team = teams.firstWhere(
+        (t) => t.code.toUpperCase() == teamId.toUpperCase() || t.name.toUpperCase() == teamId.toUpperCase(),
+      );
       final t = WC2026Data.teams.firstWhere(
-        (team) => team.code.toUpperCase() == teamId.toUpperCase() || team.name.toUpperCase() == teamId.toUpperCase(),
+        (wt) => wt.code.toUpperCase() == team.code.toUpperCase(),
       );
       return t.squad.map((p) => _mapPlayer(p, t)).toList();
     } catch (_) {
@@ -174,16 +212,16 @@ class MockDataRepository implements DataRepository {
 
   @override
   Future<List<GroupStanding>> getGroupStandings(String groupName) async {
-    // 1. Get all teams in this group from WC2026Data
-    final groupTeams = WC2026Data.teams
+    // 1. Get all teams in this group from our clean getTeams()
+    final allTeams = await getTeams();
+    final groupTeams = allTeams
         .where((t) => t.group.toUpperCase() == groupName.toUpperCase())
-        .map(_mapTeam)
         .toList();
 
     // 2. Initialize map of standings
     final Map<String, GroupStanding> standingsMap = {
       for (final team in groupTeams)
-        team.id: GroupStanding(
+        team.code.toUpperCase(): GroupStanding(
           team: team,
           played: 0,
           won: 0,
@@ -200,10 +238,11 @@ class MockDataRepository implements DataRepository {
 
     // 4. Update stats from matches that have kicked off (live, halftime, finished)
     for (final match in matches) {
-      final homeCode = match.homeTeam.code;
-      final awayCode = match.awayTeam.code;
-      final homeGroup = _getTeamGroup(homeCode);
-      final awayGroup = _getTeamGroup(awayCode);
+      final homeCode = match.homeTeam.code.toUpperCase();
+      final awayCode = match.awayTeam.code.toUpperCase();
+      
+      final homeGroup = _teamGroups[homeCode] ?? '';
+      final awayGroup = _teamGroups[awayCode] ?? '';
       
       final bool isThisGroup = match.group?.toUpperCase() == groupName.toUpperCase() ||
           homeGroup.toUpperCase() == groupName.toUpperCase() ||
@@ -214,11 +253,8 @@ class MockDataRepository implements DataRepository {
            match.status == MatchStatus.live ||
            match.status == MatchStatus.halftime)) {
         
-        final homeId = match.homeTeam.id;
-        final awayId = match.awayTeam.id;
-
-        final homeStanding = standingsMap[homeId];
-        final awayStanding = standingsMap[awayId];
+        final homeStanding = standingsMap[homeCode];
+        final awayStanding = standingsMap[awayCode];
 
         if (homeStanding != null && awayStanding != null) {
           final hs = match.homeScore;
@@ -228,7 +264,7 @@ class MockDataRepository implements DataRepository {
           final bool awayWon = as > hs;
           final bool draw = hs == as;
 
-          standingsMap[homeId] = GroupStanding(
+          standingsMap[homeCode] = GroupStanding(
             team: homeStanding.team,
             played: homeStanding.played + 1,
             won: homeStanding.won + (homeWon ? 1 : 0),
@@ -239,7 +275,7 @@ class MockDataRepository implements DataRepository {
             points: homeStanding.points + (homeWon ? 3 : (draw ? 1 : 0)),
           );
 
-          standingsMap[awayId] = GroupStanding(
+          standingsMap[awayCode] = GroupStanding(
             team: awayStanding.team,
             played: awayStanding.played + 1,
             won: awayStanding.won + (awayWon ? 1 : 0),
