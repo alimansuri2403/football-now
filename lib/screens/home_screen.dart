@@ -12,6 +12,7 @@ import '../core/constants.dart';
 import '../core/theme.dart';
 import '../models/match.dart';
 import '../services/ad_service.dart';
+import '../data/wc2026_data.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -156,6 +157,128 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               const SizedBox(height: 32),
                             ],
                           ),
+              ),
+
+              // Stadiums Section
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        'Host Stadiums',
+                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 200,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        scrollDirection: Axis.horizontal,
+                        itemCount: WC2026Data.stadiums.length,
+                        itemBuilder: (context, index) {
+                          final stadium = WC2026Data.stadiums[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 16),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: SizedBox(
+                                width: 280,
+                                child: Stack(
+                                  children: [
+                                    // Background Image
+                                    Positioned.fill(
+                                      child: Image.network(
+                                        stadium.imageUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) => Container(
+                                          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                                          child: const Icon(Icons.stadium, size: 48, color: Colors.grey),
+                                        ),
+                                      ),
+                                    ),
+                                    // Gradient Overlay
+                                    Positioned.fill(
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Colors.transparent,
+                                              Colors.black.withOpacity(0.85),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    // Content
+                                    Positioned.fill(
+                                      child: Container(), // Spacer layer/layout provider
+                                    ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        if (stadium.host != null)
+                                          Container(
+                                            margin: const EdgeInsets.only(bottom: 6),
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.amber,
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              stadium.host!,
+                                              style: const TextStyle(
+                                                color: Colors.black,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 10,
+                                              ),
+                                            ),
+                                          ),
+                                        Text(
+                                          stadium.name,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${stadium.city}, ${stadium.country}',
+                                          style: TextStyle(
+                                            color: Colors.white.withOpacity(0.8),
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Capacity: ${NumberFormat('#,###').format(stadium.capacity)}',
+                                          style: TextStyle(
+                                            color: Colors.white.withOpacity(0.6),
+                                            fontSize: 10,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
 
               // Search Box for Schedule
