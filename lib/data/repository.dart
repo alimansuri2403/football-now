@@ -31,7 +31,55 @@ class MockDataRepository implements DataRepository {
 
   final Map<String, List<Player>> _rosterCache = {};
 
-  MockDataRepository({this.getMatches, this.espnApi});
+  MockDataRepository({this.getMatches, this.espnApi}) {
+    _preCacheRosters();
+  }
+
+  void _preCacheRosters() async {
+    // 1. Prioritized top teams for concurrent fetch on startup to resolve instantly
+    final priorityTeams = ['ARG', 'POR', 'FRA', 'ENG', 'BRA', 'ESP', 'GER', 'NED', 'URU', 'BEL', 'USA', 'MEX', 'CAN'];
+    
+    if (espnApi != null) {
+      try {
+        await Future.wait(priorityTeams.map((code) async {
+          final espnId = _teamCodeToEspnId[code];
+          if (espnId != null) {
+            try {
+              await getPlayersByTeam(code);
+            } catch (_) {}
+          }
+        }));
+      } catch (_) {}
+    }
+
+    // 2. Fetch the rest of the teams sequentially with a delay in the background
+    final remainingTeams = _teamCodeToEspnId.keys.where((code) => !priorityTeams.contains(code)).toList();
+    for (final code in remainingTeams) {
+      if (_rosterCache.containsKey(code)) continue;
+      final espnId = _teamCodeToEspnId[code];
+      if (espnId != null && espnApi != null) {
+        try {
+          await getPlayersByTeam(code);
+        } catch (_) {}
+      }
+      await Future.delayed(const Duration(milliseconds: 300));
+    }
+  }
+
+  String _simplifyName(String name) {
+    return name
+        .toLowerCase()
+        .replaceAll(' ', '')
+        .replaceAll('á', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ú', 'u')
+        .replaceAll('ñ', 'n')
+        .replaceAll('ü', 'u')
+        .replaceAll('ö', 'o');
+  }
+
 
   static const Map<String, String> _teamCodeToEspnId = {
     'MEX': '203', 'RSA': '657', 'KOR': '451', 'CZE': '293',
@@ -127,17 +175,41 @@ class MockDataRepository implements DataRepository {
       rating = 92 + (seed.abs() % 5); // 92 to 96
     }
 
+    // Try to find matching player in ESPN roster cache to copy photoUrl & details
+    String photoUrl = '';
+    int jersey = p.number;
+    int age = p.age;
+    String position = positionLong;
+    List<String> pastRecords = ['Plays for ${p.club}'];
+
+    final cacheKey = t.code.toUpperCase();
+    if (_rosterCache.containsKey(cacheKey)) {
+      final cachedPlayers = _rosterCache[cacheKey]!;
+      for (final cp in cachedPlayers) {
+        if (_simplifyName(cp.name) == _simplifyName(p.name) || cp.number == p.number) {
+          photoUrl = cp.photoUrl;
+          jersey = cp.number;
+          age = cp.age;
+          position = cp.position;
+          if (cp.pastRecords.isNotEmpty) {
+            pastRecords = List<String>.from(cp.pastRecords);
+          }
+          break;
+        }
+      }
+    }
+
     return Player(
       id: id,
       name: p.name,
       teamId: t.code,
       teamName: t.name,
-      position: positionLong,
-      number: p.number,
-      age: p.age,
-      photoUrl: '',
+      position: position,
+      number: jersey,
+      age: age,
+      photoUrl: photoUrl,
       rating: rating,
-      pastRecords: ['Plays for ${p.club}'],
+      pastRecords: pastRecords,
       stats: PlayerStats(
         goals: goals,
         assists: assists,
