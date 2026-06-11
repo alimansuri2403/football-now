@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../models/player.dart';
 import '../core/theme.dart';
 import '../core/constants.dart';
+import 'player_avatar.dart';
 
 class PlayerCard extends StatelessWidget {
   final Player player;
@@ -27,7 +28,7 @@ class PlayerCard extends StatelessWidget {
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: () {
-          context.go('/player/${player.id}');
+          context.push('/players/player/${player.id}');
         },
         child: Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -54,20 +55,7 @@ class PlayerCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               // Player Photo / Initials
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                backgroundImage: player.photoUrl.isNotEmpty ? NetworkImage(player.photoUrl) : null,
-                child: player.photoUrl.isEmpty
-                    ? Text(
-                        player.name.split(' ').map((e) => e[0]).take(2).join(),
-                        style: TextStyle(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )
-                    : null,
-              ),
+              PlayerAvatar(player: player, radius: 24),
               const SizedBox(width: 16),
               // Name, Team & Rating
               Expanded(

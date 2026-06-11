@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../models/player.dart';
 import '../providers/player_providers.dart';
 import '../core/constants.dart';
+import '../widgets/player_avatar.dart';
 
 class PlayerDetailScreen extends ConsumerWidget {
   final String playerId;
@@ -63,21 +64,7 @@ class PlayerDetailScreen extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 40,
-            backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-            backgroundImage: player.photoUrl.isNotEmpty ? NetworkImage(player.photoUrl) : null,
-            child: player.photoUrl.isEmpty
-                ? Text(
-                    player.name.split(' ').map((e) => e[0]).take(2).join(),
-                    style: TextStyle(
-                      color: theme.colorScheme.primary,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  )
-                : null,
-          ),
+          PlayerAvatar(player: player, radius: 40, fontSize: 28),
           const SizedBox(width: 24),
           Expanded(
             child: Column(

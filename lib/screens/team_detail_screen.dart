@@ -6,6 +6,7 @@ import '../models/player.dart';
 import '../providers/team_providers.dart';
 import '../providers/player_providers.dart';
 import '../providers/favourites_provider.dart';
+import '../widgets/player_avatar.dart';
 import '../core/constants.dart';
 
 class TeamDetailScreen extends ConsumerWidget {
@@ -170,16 +171,12 @@ class TeamDetailScreen extends ConsumerWidget {
             return Card(
               margin: const EdgeInsets.symmetric(vertical: 6),
               child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                  backgroundImage: p.photoUrl.isNotEmpty ? NetworkImage(p.photoUrl) : null,
-                  child: p.photoUrl.isEmpty ? Text('${p.number}') : null,
-                ),
+                leading: PlayerAvatar(player: p, radius: 20),
                 title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text('Age: ${p.age}'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
-                  context.go('/player/${p.id}');
+                  context.push('/players/player/${p.id}');
                 },
               ),
             );
