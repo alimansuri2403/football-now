@@ -135,7 +135,7 @@ class MockDataRepository implements DataRepository {
       position: positionLong,
       number: p.number,
       age: p.age,
-      photoUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=face',
+      photoUrl: '',
       rating: rating,
       pastRecords: ['Plays for ${p.club}'],
       stats: PlayerStats(
@@ -176,7 +176,7 @@ class MockDataRepository implements DataRepository {
         position: pos == 'GK' ? 'Goalkeeper' : (pos == 'DEF' ? 'Defender' : (pos == 'MID' ? 'Midfielder' : 'Forward')),
         number: i + 1,
         age: 22 + (i % 8),
-        photoUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=face',
+        photoUrl: '',
         rating: 70 + (i % 15),
         pastRecords: const [],
         stats: PlayerStats(
