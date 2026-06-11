@@ -82,19 +82,20 @@ class MockDataRepository implements DataRepository {
 
 
   static const Map<String, String> _teamCodeToEspnId = {
-    'MEX': '203', 'RSA': '657', 'KOR': '451', 'CZE': '293',
-    'CAN': '448', 'BIH': '296', 'QAT': '461', 'SUI': '290',
-    'BRA': '205', 'MAR': '744', 'HAI': '381', 'SCO': '291',
-    'USA': '609', 'PAR': '208', 'AUS': '382', 'TUR': '294',
-    'GER': '272', 'CUW': '3057', 'CIV': '647', 'ECU': '209',
-    'NED': '275', 'JPN': '452', 'SWE': '288', 'TUN': '658',
-    'BEL': '284', 'EGY': '644', 'IRN': '463', 'NZL': '380',
-    'ESP': '289', 'CPV': '13197', 'SAU': '456', 'URU': '210',
-    'FRA': '278', 'SEN': '654', 'IRQ': '458', 'NOR': '281',
-    'ARG': '202', 'ALG': '642', 'AUT': '283', 'JOR': '459',
-    'POR': '287', 'COD': '646', 'UZB': '457', 'COL': '207',
-    'ENG': '277', 'CRO': '286', 'GHA': '645', 'PAN': '3865',
+    'MEX': '203', 'RSA': '467', 'KOR': '451', 'CZE': '450',
+    'CAN': '206', 'BIH': '452', 'QAT': '4398', 'SUI': '475',
+    'BRA': '205', 'MAR': '2869', 'HAI': '2654', 'SCO': '580',
+    'USA': '660', 'PAR': '210', 'AUS': '628', 'TUR': '465',
+    'GER': '481', 'CUW': '11678', 'CIV': '4789', 'ECU': '209',
+    'NED': '449', 'JPN': '627', 'SWE': '466', 'TUN': '659',
+    'BEL': '459', 'EGY': '2620', 'IRN': '469', 'NZL': '2666',
+    'ESP': '164', 'CPV': '2597', 'SAU': '655', 'URU': '212',
+    'FRA': '478', 'SEN': '654', 'IRQ': '4375', 'NOR': '464',
+    'ARG': '202', 'ALG': '624', 'AUT': '474', 'JOR': '2917',
+    'POR': '482', 'COD': '2850', 'UZB': '2570', 'COL': '208',
+    'ENG': '448', 'CRO': '477', 'GHA': '4469', 'PAN': '2659',
   };
+
 
 
   static const Map<String, String> _teamGroups = {
