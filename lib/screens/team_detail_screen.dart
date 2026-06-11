@@ -5,6 +5,7 @@ import '../models/team.dart';
 import '../models/player.dart';
 import '../providers/team_providers.dart';
 import '../providers/player_providers.dart';
+import '../providers/favourites_provider.dart';
 import '../core/constants.dart';
 
 class TeamDetailScreen extends ConsumerWidget {
@@ -17,6 +18,7 @@ class TeamDetailScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final teamAsync = ref.watch(teamDetailProvider(teamId));
     final playersAsync = ref.watch(teamPlayersProvider(teamId));
+    final isFav = ref.watch(favouritesProvider).contains(teamId.toUpperCase());
 
     return Scaffold(
       appBar: AppBar(
@@ -25,6 +27,26 @@ class TeamDetailScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          IconButton(
+            tooltip: isFav ? 'Remove from favourites' : 'Add to favourites',
+            icon: Icon(
+              isFav ? Icons.star : Icons.star_border,
+              color: isFav ? Colors.amber : null,
+            ),
+            onPressed: () {
+              ref.read(favouritesProvider.notifier).toggleFavourite(teamId);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(isFav
+                      ? 'Removed from favourites'
+                      : 'Added to favourites ⭐'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: teamAsync.when(
         data: (team) {

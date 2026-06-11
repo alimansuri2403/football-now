@@ -15,14 +15,22 @@ class AppTheme {
   static const Color warning = Color(0xFFFFD600);
   
   static ThemeData get darkTheme {
+    return darkThemeWithColor(darkAccent);
+  }
+
+  static ThemeData get lightTheme {
+    return lightThemeWithColor(lightAccent);
+  }
+
+  static ThemeData darkThemeWithColor(Color primary) {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: darkBg,
       cardColor: darkCard,
-      colorScheme: const ColorScheme.dark(
-        primary: darkAccent,
-        secondary: Color(0xFFFF4081),
+      colorScheme: ColorScheme.dark(
+        primary: primary,
+        secondary: const Color(0xFFFF4081),
         surface: darkCard,
         background: darkBg,
         onPrimary: Colors.black,
@@ -36,24 +44,19 @@ class AppTheme {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
       ),
     );
   }
 
-  static ThemeData get lightTheme {
+  static ThemeData lightThemeWithColor(Color primary) {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       scaffoldBackgroundColor: lightBg,
       cardColor: lightCard,
-      colorScheme: const ColorScheme.light(
-        primary: lightAccent,
-        secondary: Color(0xFF00E5FF),
+      colorScheme: ColorScheme.light(
+        primary: primary,
+        secondary: const Color(0xFF00E5FF),
         surface: lightCard,
         background: lightBg,
         onPrimary: Colors.white,
@@ -63,14 +66,14 @@ class AppTheme {
         bodyMedium: GoogleFonts.inter(textStyle: ThemeData.light().textTheme.bodyMedium),
         bodySmall: GoogleFonts.inter(textStyle: ThemeData.light().textTheme.bodySmall),
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
-          color: lightAccent,
+          color: primary,
         ),
       ),
     );

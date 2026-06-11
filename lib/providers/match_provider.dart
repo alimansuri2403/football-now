@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/match.dart';
 import '../services/espn_api.dart';
+import '../services/notification_service.dart';
 import '../data/repository.dart';
 
 // ── ESPN API provider (free, no key — same source as claudinho) ───────────────
@@ -145,6 +146,14 @@ class MatchNotifier extends StateNotifier<MatchState> {
               m.status == MatchStatus.live ||
               m.status == MatchStatus.halftime)
           .toList();
+
+      // Detect newly live matches and fire notifications
+      final previousLiveIds = state.liveMatches.map((m) => m.id).toSet();
+      for (final m in live) {
+        if (!previousLiveIds.contains(m.id)) {
+          NotificationService().showMatchLiveNotification(m);
+        }
+      }
 
       // Merge: keep all existing matches but update any that appear in scoreboard
       final Map<String, Match> existing = {

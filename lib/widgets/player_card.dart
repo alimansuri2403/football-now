@@ -8,12 +8,14 @@ class PlayerCard extends StatelessWidget {
   final Player player;
   final int rank;
   final bool showGoals; // if true, highlight goals; if false, highlight assists
+  final bool showRating; // if true, show OVR rating as primary stat
 
   const PlayerCard({
     super.key,
     required this.player,
     required this.rank,
     this.showGoals = true,
+    this.showRating = false,
   });
 
   @override
@@ -110,23 +112,33 @@ class PlayerCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: showGoals
-                      ? theme.colorScheme.primary.withOpacity(0.1)
-                      : theme.colorScheme.secondary.withOpacity(0.1),
+                  color: showRating
+                      ? Colors.amber.withOpacity(0.12)
+                      : showGoals
+                          ? theme.colorScheme.primary.withOpacity(0.1)
+                          : theme.colorScheme.secondary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      showGoals ? '${player.stats.goals}' : '${player.stats.assists}',
+                      showRating
+                          ? '${player.rating}'
+                          : showGoals
+                              ? '${player.stats.goals}'
+                              : '${player.stats.assists}',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: showGoals ? theme.colorScheme.primary : theme.colorScheme.secondary,
+                        color: showRating
+                            ? Colors.amber
+                            : showGoals
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.secondary,
                       ),
                     ),
                     Text(
-                      showGoals ? 'GOALS' : 'ASSISTS',
+                      showRating ? 'OVR' : (showGoals ? 'GOALS' : 'ASSISTS'),
                       style: theme.textTheme.labelSmall?.copyWith(
                         fontSize: 9,
                         color: Colors.grey,

@@ -30,3 +30,10 @@ final topAssistsProvider = FutureProvider<List<Player>>((ref) async {
   sorted.sort((a, b) => b.stats.assists.compareTo(a.stats.assists));
   return sorted;
 });
+
+final topRatingsProvider = FutureProvider<List<Player>>((ref) async {
+  final players = await ref.watch(playersProvider.future);
+  final sorted = List<Player>.from(players);
+  sorted.sort((a, b) => b.rating.compareTo(a.rating));
+  return sorted;
+});

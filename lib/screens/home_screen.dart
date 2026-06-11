@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,11 +26,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   String _searchQuery = '';
   BannerAd? _bannerAd;
   bool _isBannerAdLoaded = false;
+  Timer? _countdownTimer;
+  DateTime _now = DateTime.now();
 
   @override
   void initState() {
     super.initState();
     _loadBannerAd();
+    // Tick every second for live countdown
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
   }
 
   void _loadBannerAd() {
@@ -61,6 +68,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void dispose() {
     _bannerAd?.dispose();
+    _countdownTimer?.cancel();
     super.dispose();
   }
 
@@ -451,7 +459,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         child: Row(
           children: [
-            // Left Date column
+            // Left: Date / Group / Countdown column
             SizedBox(
               width: 90,
               child: Column(
@@ -459,16 +467,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    match.group ?? '',
+                    match.group != null ? 'Group ${match.group}' : (match.stage ?? ''),
                     style: theme.textTheme.labelSmall?.copyWith(color: Colors.grey),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    DateFormat('MMM d, HH:mm').format(match.dateTime),
-                    style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
-                  ),
+                  if (match.status == MatchStatus.scheduled &&
+                      match.kickoffTime.isAfter(_now))
+                    _CountdownWidget(kickoff: match.kickoffTime, now: _now, theme: theme)
+                  else
+                    Text(
+                      DateFormat('MMM d, HH:mm').format(match.dateTime),
+                      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                    ),
                 ],
               ),
             ),
@@ -538,6 +550,60 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SizedBox(width: 12),
             const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Stateless countdown widget — parent must rebuild every second
+class _CountdownWidget extends StatelessWidget {
+  final DateTime kickoff;
+  final DateTime now;
+  final ThemeData theme;
+
+  const _CountdownWidget({
+    required this.kickoff,
+    required this.now,
+    required this.theme,
+  });
+
+  String _format(Duration d) {
+    if (d.inDays >= 1) {
+      return '${d.inDays}d ${d.inHours % 24}h';
+    } else if (d.inHours >= 1) {
+      return '${d.inHours}h ${d.inMinutes % 60}m';
+    } else if (d.inMinutes >= 1) {
+      return '${d.inMinutes}m ${d.inSeconds % 60}s';
+    }
+    return '${d.inSeconds}s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final remaining = kickoff.difference(now);
+    if (remaining.isNegative) {
+      return Text(
+        'Starting soon',
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: AppTheme.liveColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 9,
+        ),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        '⏱ ${_format(remaining)}',
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.bold,
+          fontSize: 9,
         ),
       ),
     );

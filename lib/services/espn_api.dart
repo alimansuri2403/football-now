@@ -622,33 +622,24 @@ class EspnApiService {
             break;
         }
 
-        // Make the first 2 matches of each group finished to show realistic standings
-        final bool isFinished = matchInGroupIndex < 2;
-        
-        int homeScore = 0;
-        int awayScore = 0;
-        MatchStatus status = MatchStatus.scheduled;
+        final MatchStatus status = m.status;
 
-        if (isFinished) {
-          status = MatchStatus.finished;
-          // Deterministic score based on match index
-          final int seed = i.hashCode.abs();
-          homeScore = (seed % 3) + 1; // 1 to 3
-          awayScore = ((seed >> 2) % 2) + (seed % 2 == 0 ? 1 : 0); // 0 to 2
-        }
+        int hs = m.homeScore;
+        int as = m.awayScore;
+        int? minute = m.minute;
 
         matches[i] = Match(
           id: m.id,
           homeTeam: home,
           awayTeam: away,
-          homeScore: homeScore,
-          awayScore: awayScore,
+          homeScore: hs,
+          awayScore: as,
           status: status,
           kickoffTime: m.kickoffTime,
           venue: m.venue,
           city: m.city,
           stage: m.stage,
-          minute: isFinished ? 90 : null,
+          minute: minute,
           group: groupName,
           stats: m.stats,
           events: m.events,
@@ -683,8 +674,8 @@ class EspnApiService {
     // Helper to create simple empty Team
     Team dummyTeam() => const Team(
           id: '',
-          name: '',
-          code: '',
+          name: 'TBD',
+          code: 'TBD',
           flagCode: '',
           group: '',
           fifaRanking: 0,

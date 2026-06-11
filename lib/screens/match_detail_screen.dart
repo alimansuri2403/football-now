@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../models/match.dart';
 import '../providers/match_provider.dart';
@@ -7,6 +8,7 @@ import '../providers/player_providers.dart';
 import '../widgets/match_stat_bar.dart';
 import '../widgets/shimmer_loading.dart';
 import '../core/constants.dart';
+import '../core/theme.dart';
 import '../services/ad_service.dart';
 import '../services/espn_api.dart';
 
@@ -43,6 +45,20 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.chat_bubble_outline),
+            tooltip: 'Live Fan Chat',
+            onPressed: () {
+              matchAsync.whenData((match) {
+                if (match != null) {
+                  final title = '${match.homeTeam.code} vs ${match.awayTeam.code}';
+                  context.push('/chat/${match.id}/${Uri.encodeComponent(title)}');
+                }
+              });
+            },
+          ),
+        ],
       ),
       body: matchAsync.when(
         data: (match) {
@@ -50,7 +66,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
             return const Center(child: Text('Match not found'));
           }
           return DefaultTabController(
-            length: 4,
+            length: 5,
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Column(
@@ -62,22 +78,25 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                     indicatorColor: theme.colorScheme.primary,
                     labelColor: theme.colorScheme.primary,
                     unselectedLabelColor: Colors.grey,
+                    isScrollable: true,
                     tabs: const [
                       Tab(text: 'Statistics'),
                       Tab(text: 'Timeline'),
                       Tab(text: 'Lineups'),
                       Tab(text: 'H2H'),
+                      Tab(text: 'AI Summary'),
                     ],
                   ),
                   const SizedBox(height: 20),
                   SizedBox(
-                    height: 500,
+                    height: 520,
                     child: TabBarView(
                       children: [
                         _buildStatsTab(match),
                         _buildTimelineTab(theme, match),
                         _buildLineupsTab(ref, match),
                         _buildH2hTab(match),
+                        _buildAiSummaryTab(match),
                       ],
                     ),
                   )
@@ -572,6 +591,178 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildAiSummaryTab(Match match) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Generate dynamic summary
+    String summaryTitle = '';
+    String summaryBody = '';
+    String starPlayer = 'Not decided yet';
+    String starPlayerDetail = '';
+
+    if (match.status == MatchStatus.scheduled) {
+      summaryTitle = 'Upcoming Clash Analysis';
+      summaryBody = 'This is an upcoming match scheduled at ${match.venue} in ${match.city ?? 'host city'}. '
+          'According to current FIFA rankings, ${match.homeTeam.name} (#${match.homeTeam.fifaRanking}) is set to face '
+          '${match.awayTeam.name} (#${match.awayTeam.fifaRanking}). This looks to be a highly competitive encounter '
+          'with both teams aiming to secure crucial points in the tournament.';
+      starPlayer = '${match.homeTeam.name} / ${match.awayTeam.name}';
+      starPlayerDetail = 'Look out for key playmakers on both sides to dominate midfield possession.';
+    } else if (match.status == MatchStatus.live || match.status == MatchStatus.halftime) {
+      summaryTitle = 'Live Match Summary';
+      summaryBody = 'A live battle is currently unfolding! The score is ${match.homeScore} - ${match.awayScore} in the ${match.currentMinute}th minute. '
+          'Both sides have shown high intensity. ${match.homeTeam.name} is working to enforce possession, while '
+          '${match.awayTeam.name} is posing a severe threat on counter-attacks. Everything is still to play for.';
+      starPlayer = 'Active Midfielders';
+      starPlayerDetail = 'Playmakers are controlling the tempo as the tension escalates in real-time.';
+    } else if (match.status == MatchStatus.finished) {
+      summaryTitle = 'Post-Match AI Report';
+      final homeName = match.homeTeam.name;
+      final awayName = match.awayTeam.name;
+      final homeScore = match.homeScore;
+      final awayScore = match.awayScore;
+
+      if (homeScore > awayScore) {
+        summaryBody = 'A dominant performance by $homeName resulted in a $homeScore - $awayScore victory over $awayName at ${match.venue}. '
+            'The home team asserted their dominance early on, converting key opportunities and maintaining defensive discipline. '
+            'Despite late pressure from $awayName, $homeName successfully closed out the match to claim all three points.';
+        starPlayer = '$homeName Attacker';
+        starPlayerDetail = 'Made the difference by finding spaces in the box and clinching the decisive goal.';
+      } else if (awayScore > homeScore) {
+        summaryBody = 'An outstanding away display saw $awayName snatch a $homeScore - $awayScore win against $homeName. '
+            'Capitalizing on tactical opportunities, the visitors broke down $homeName\'s backline to secure the goals. '
+            'An intense defensive effort in the final minutes guaranteed they took home the win.';
+        starPlayer = '$awayName Forward';
+        starPlayerDetail = 'Posed a constant threat to the defenders, creating multiple chances and scoring.';
+      } else {
+        summaryBody = 'A tactical stalemate ended in a $homeScore - $awayScore draw between $homeName and $awayName. '
+            'Both teams had their chances to win it, but stout defending and top-tier goalkeeping kept the score level. '
+            'Both federations will take a point from this closely contested affair.';
+        starPlayer = 'Starting Goalkeepers';
+        starPlayerDetail = 'Pulled off several crucial saves to deny the attackers and secure the draw.';
+      }
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Explain in 30 seconds card
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: AppTheme.glassDecoration(context: context, radius: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.video_camera_back_outlined, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    const Text(
+                      '30-SECOND SUMMARY',
+                      style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.0, fontSize: 12),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  summaryTitle,
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  summaryBody,
+                  style: const TextStyle(fontSize: 13, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Star Player card
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: AppTheme.glassDecoration(context: context, radius: 20),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: theme.colorScheme.primary.withOpacity(0.15),
+                  radius: 24,
+                  child: Icon(Icons.star, color: theme.colorScheme.primary),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'MATCH STAR PLAYER',
+                        style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        starPlayer,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      Text(
+                        starPlayerDetail,
+                        style: const TextStyle(color: Colors.grey, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Match summary highlights key moments
+          if (match.events.isNotEmpty) ...[
+            Text(
+              'Key Moments Timeline',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: match.events.length,
+              itemBuilder: (context, idx) {
+                final e = match.events[idx];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${e.minute}\'',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary, fontSize: 11),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          '${e.playerName} - ${e.detail}',
+                          style: const TextStyle(fontSize: 12.5),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

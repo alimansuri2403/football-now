@@ -296,4 +296,9 @@ class SportmonksRepository implements DataRepository {
       events: const [],
     );
   }
+
+  @override
+  void dispose() {
+    client.close();
+  }
 }
