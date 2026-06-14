@@ -87,7 +87,7 @@ class GroupTable extends StatelessWidget {
                     TableCell(
                       child: InkWell(
                         onTap: () {
-                          context.go('/team/${standing.team.id}');
+                          context.go('/teams/team/${standing.team.id}');
                         },
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8),

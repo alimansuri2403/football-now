@@ -6,6 +6,7 @@ import '../models/match.dart';
 import '../models/player.dart';
 import '../providers/match_provider.dart';
 import '../providers/player_providers.dart';
+import '../providers/timezone_provider.dart';
 import '../core/constants.dart';
 import '../core/theme.dart';
 import '../widgets/shimmer_loading.dart';
@@ -69,6 +70,14 @@ _Prediction _computePrediction(Match match) {
     predictedAwayGoals: awayGoals,
     confidence: confidence,
   );
+}
+
+// ── Timezone helper ────────────────────────────────────────────────────────────
+String _localMatchDate(WidgetRef ref, DateTime utcTime) {
+  final tzNotifier = ref.read(timezoneProvider.notifier);
+  final tzState = ref.read(timezoneProvider);
+  final local = tzNotifier.convertToLocal(utcTime);
+  return '${DateFormat('MMM d').format(local)} ${tzState.timezoneAbbreviation}';
 }
 
 // ── Screen ─────────────────────────────────────────────────────────────────────
@@ -265,7 +274,7 @@ class _PredictionScreenState extends ConsumerState<PredictionScreen>
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
-                                      DateFormat('MMM d').format(m.kickoffTime),
+                                      _localMatchDate(ref, m.kickoffTime),
                                       style: TextStyle(
                                         fontSize: 11,
                                         color: isSelected ? Colors.black54 : Colors.grey,

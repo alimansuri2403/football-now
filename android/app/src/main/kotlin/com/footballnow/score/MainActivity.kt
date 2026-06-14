@@ -1,4 +1,4 @@
-package com.example.fifa2026_app
+package com.footballnow.score
 
 import io.flutter.embedding.android.FlutterActivity
 

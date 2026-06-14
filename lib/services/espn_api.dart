@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../models/match.dart';
 import '../models/team.dart';
 import '../models/player.dart';
+import '../data/wc2026_data.dart';
 
 /// Represents a historical head-to-head meeting between two teams.
 class H2hMeeting {
@@ -367,7 +368,7 @@ class EspnApiService {
     final groupMatch = RegExp(r'Group ([A-L])').firstMatch(eventName);
     if (groupMatch != null) group = groupMatch.group(1);
 
-    return Match(
+    final rawMatch = Match(
       id: id,
       homeTeam: Team(
         id: homeTeamData['id']?.toString() ?? homeAbbr,
@@ -375,7 +376,7 @@ class EspnApiService {
         code: homeAbbr,
         flagCode: homeAbbr.toLowerCase(),
         group: group ?? '',
-        fifaRanking: 0,
+        fifaRanking: _fifaRank(homeAbbr),
         coach: '',
       ),
       awayTeam: Team(
@@ -384,7 +385,7 @@ class EspnApiService {
         code: awayAbbr,
         flagCode: awayAbbr.toLowerCase(),
         group: group ?? '',
-        fifaRanking: 0,
+        fifaRanking: _fifaRank(awayAbbr),
         coach: '',
       ),
       homeScore: homeScore,
@@ -397,6 +398,7 @@ class EspnApiService {
       stage: stage,
       group: group,
     );
+    return _populateStatsAndEvents(rawMatch);
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -489,6 +491,202 @@ class EspnApiService {
     return map[abbr.toUpperCase()] ?? abbr.toUpperCase();
   }
 
+  /// Returns the real FIFA ranking for a team code, or 50 as default.
+  int _fifaRank(String code) {
+    try {
+      return WC2026Data.teams
+          .firstWhere((t) => t.code.toUpperCase() == code.toUpperCase())
+          .fifaRanking;
+    } catch (_) {
+      return 50;
+    }
+  }
+
+  // ── Stats & Events Generation ───────────────────────────────────────────
+
+  /// Populates a match with realistic stats and events if missing.
+  Match _populateStatsAndEvents(Match match) {
+    if (match.status == MatchStatus.scheduled) return match;
+    // If already has non-trivial stats, keep them
+    if (match.stats.homeTotalShots > 0 || match.events.isNotEmpty) return match;
+    final sd = _generateStatsAndEvents(
+      match.id, match.homeTeam, match.awayTeam,
+      match.homeScore, match.awayScore, match.status, match.minute,
+    );
+    return match.copyWith(stats: sd.$1, events: sd.$2);
+  }
+
+  /// Generates deterministic, realistic MatchStats and MatchEvent list.
+  (MatchStats, List<MatchEvent>) _generateStatsAndEvents(
+    String matchId, Team homeTeam, Team awayTeam,
+    int homeScore, int awayScore, MatchStatus status, int? currentMinute,
+  ) {
+    // Use matchId hashcode as deterministic seed
+    int seed = matchId.hashCode.abs();
+    int s(int mod) { seed = (seed * 1664525 + 1013904223) & 0x7fffffff; return seed % mod; }
+
+    // Possession: biased by score difference
+    int homePoss = 45 + s(11); // 45–55
+    if (homeScore > awayScore) homePoss = 50 + s(10); // 50–59
+    if (awayScore > homeScore) homePoss = 40 + s(11); // 40–50
+    if (homePoss > 65) homePoss = 65;
+    if (homePoss < 35) homePoss = 35;
+    final awayPoss = 100 - homePoss;
+
+    // Shots — must be >= goals scored
+    final homeShotsOnTarget = (homeScore + 1 + s(5)).clamp(1, 12);
+    final awayShotsOnTarget = (awayScore + 1 + s(5)).clamp(1, 12);
+    final homeTotalShots = (homeShotsOnTarget + 1 + s(7)).clamp(homeShotsOnTarget, 22);
+    final awayTotalShots = (awayShotsOnTarget + 1 + s(7)).clamp(awayShotsOnTarget, 22);
+
+    final homeCorners = 2 + s(8);
+    final awayCorners = 2 + s(8);
+    final homeFouls = 7 + s(9);
+    final awayFouls = 7 + s(9);
+    final homeYellow = s(3);
+    final awayYellow = s(3);
+    final homeRed = (homeYellow >= 2 && s(10) == 0) ? 1 : 0;
+    final awayRed = (awayYellow >= 2 && s(10) == 0) ? 1 : 0;
+    final homeOffsides = s(5);
+    final awayOffsides = s(5);
+
+    final stats = MatchStats(
+      homePossession: homePoss,
+      awayPossession: awayPoss,
+      homeShotsOnGoal: homeShotsOnTarget,
+      awayShotsOnGoal: awayShotsOnTarget,
+      homeTotalShots: homeTotalShots,
+      awayTotalShots: awayTotalShots,
+      homeCorners: homeCorners,
+      awayCorners: awayCorners,
+      homeFouls: homeFouls,
+      awayFouls: awayFouls,
+      homeYellowCards: homeYellow,
+      awayYellowCards: awayYellow,
+      homeRedCards: homeRed,
+      awayRedCards: awayRed,
+      homeOffsides: homeOffsides,
+      awayOffsides: awayOffsides,
+    );
+
+    // ── Events ─────────────────────────────────────────────────────────────
+    final List<MatchEvent> events = [];
+
+    // Get player names from static data
+    List<String> squadNames(String code) {
+      try {
+        final team = WC2026Data.teams.firstWhere(
+          (t) => t.code.toUpperCase() == code.toUpperCase(),
+        );
+        final players = team.squad
+            .where((p) => p.position != 'GK')
+            .map((p) => p.name)
+            .toList();
+        return players.isNotEmpty ? players : ['${team.name} Player'];
+      } catch (_) {
+        return ['$code Player'];
+      }
+    }
+
+    final homePlayers = squadNames(homeTeam.code);
+    final awayPlayers = squadNames(awayTeam.code);
+
+    // Generate used minutes to avoid duplicates
+    final usedMinutes = <int>{};
+    int uniqueMin(int base, int range) {
+      int m = base + s(range);
+      int tries = 0;
+      while (usedMinutes.contains(m) && tries < 20) { m = (m + 1) % 90 + 1; tries++; }
+      usedMinutes.add(m);
+      return m;
+    }
+
+    // Goal events for home team
+    for (int i = 0; i < homeScore; i++) {
+      final minute = uniqueMin(5 + i * 15, 20).clamp(1, 90);
+      final scorer = homePlayers[s(homePlayers.length)];
+      final assisterIdx = s(homePlayers.length);
+      final assister = homePlayers[assisterIdx];
+      events.add(MatchEvent(
+        minute: minute,
+        teamId: homeTeam.code,
+        playerName: scorer,
+        type: MatchEventType.goal,
+        detail: scorer == assister ? 'Goal' : 'Assist: $assister',
+      ));
+    }
+
+    // Goal events for away team
+    for (int i = 0; i < awayScore; i++) {
+      final minute = uniqueMin(10 + i * 15, 20).clamp(1, 90);
+      final scorer = awayPlayers[s(awayPlayers.length)];
+      final assisterIdx = s(awayPlayers.length);
+      final assister = awayPlayers[assisterIdx];
+      events.add(MatchEvent(
+        minute: minute,
+        teamId: awayTeam.code,
+        playerName: scorer,
+        type: MatchEventType.goal,
+        detail: scorer == assister ? 'Goal' : 'Assist: $assister',
+      ));
+    }
+
+    // Card events
+    for (int i = 0; i < homeYellow; i++) {
+      final minute = uniqueMin(20 + i * 12, 15).clamp(1, 90);
+      final player = homePlayers[s(homePlayers.length)];
+      events.add(MatchEvent(
+        minute: minute,
+        teamId: homeTeam.code,
+        playerName: player,
+        type: MatchEventType.card,
+        detail: 'Yellow Card',
+      ));
+    }
+    for (int i = 0; i < awayYellow; i++) {
+      final minute = uniqueMin(25 + i * 12, 15).clamp(1, 90);
+      final player = awayPlayers[s(awayPlayers.length)];
+      events.add(MatchEvent(
+        minute: minute,
+        teamId: awayTeam.code,
+        playerName: player,
+        type: MatchEventType.card,
+        detail: 'Yellow Card',
+      ));
+    }
+
+    // Substitutions (only in second half for finished, or after 55' for live)
+    final isLate = status == MatchStatus.finished ||
+        (status == MatchStatus.live && (currentMinute ?? 0) > 55);
+    if (isLate) {
+      for (int i = 0; i < 2; i++) {
+        final minute = uniqueMin(55 + i * 10, 15).clamp(56, 90);
+        final playerOff = homePlayers[s(homePlayers.length)];
+        events.add(MatchEvent(
+          minute: minute,
+          teamId: homeTeam.code,
+          playerName: playerOff,
+          type: MatchEventType.substitution,
+          detail: 'Substitution',
+        ));
+      }
+      for (int i = 0; i < 2; i++) {
+        final minute = uniqueMin(58 + i * 10, 15).clamp(56, 90);
+        final playerOff = awayPlayers[s(awayPlayers.length)];
+        events.add(MatchEvent(
+          minute: minute,
+          teamId: awayTeam.code,
+          playerName: playerOff,
+          type: MatchEventType.substitution,
+          detail: 'Substitution',
+        ));
+      }
+    }
+
+    events.sort((a, b) => a.minute.compareTo(b.minute));
+    return (stats, events);
+  }
+
   List<Match> _injectMockFinishedResults(List<Match> matches) {
     // Sort matches by kickoff time so we modify the earliest ones
     matches.sort((a, b) => a.kickoffTime.compareTo(b.kickoffTime));
@@ -503,7 +701,7 @@ class EspnApiService {
         code: code,
         flagCode: flagCode,
         group: group,
-        fifaRanking: 0,
+        fifaRanking: _fifaRank(code),
         coach: '',
       );
     }
@@ -628,7 +826,7 @@ class EspnApiService {
         int as = m.awayScore;
         int? minute = m.minute;
 
-        matches[i] = Match(
+        final rebuilt = Match(
           id: m.id,
           homeTeam: home,
           awayTeam: away,
@@ -644,6 +842,7 @@ class EspnApiService {
           stats: m.stats,
           events: m.events,
         );
+        matches[i] = _populateStatsAndEvents(rebuilt);
       } else {
         // Knockout matches: just clear group so they don't count towards standings
         matches[i] = Match(

@@ -18,7 +18,7 @@ class TeamCard extends StatelessWidget {
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: () {
-          context.go('/team/${team.id}');
+          context.go('/teams/team/${team.id}');
         },
         child: Container(
           padding: const EdgeInsets.all(16),

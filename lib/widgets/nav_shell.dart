@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/constants.dart';
 import '../core/theme.dart';
+import '../providers/timezone_provider.dart';
+import '../services/ad_service.dart';
 
-class NavShell extends StatefulWidget {
+class NavShell extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   const NavShell({
@@ -12,10 +15,10 @@ class NavShell extends StatefulWidget {
   });
 
   @override
-  State<NavShell> createState() => _NavShellState();
+  ConsumerState<NavShell> createState() => _NavShellState();
 }
 
-class _NavShellState extends State<NavShell> {
+class _NavShellState extends ConsumerState<NavShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   void _onTap(BuildContext context, int index) {
@@ -23,10 +26,13 @@ class _NavShellState extends State<NavShell> {
       // "More" tapped -> Open drawer
       _scaffoldKey.currentState?.openEndDrawer();
     } else {
-      widget.navigationShell.goBranch(
-        index,
-        initialLocation: index == widget.navigationShell.currentIndex,
-      );
+      if (index == widget.navigationShell.currentIndex) return;
+      AdService().recordClickAndMaybeShowRewardedAd(context, onUserEarnedReward: () {
+        widget.navigationShell.goBranch(
+          index,
+          initialLocation: index == widget.navigationShell.currentIndex,
+        );
+      });
     }
   }
 
@@ -102,17 +108,29 @@ class _NavShellState extends State<NavShell> {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.emoji_events,
-                color: theme.colorScheme.primary,
-                size: 28,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'FIFA 2026',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  height: 48,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Row(
+                    children: [
+                      Icon(
+                        Icons.emoji_events,
+                        color: theme.colorScheme.primary,
+                        size: 28,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Football Now',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -221,11 +239,18 @@ class _NavShellState extends State<NavShell> {
                     isSelected: false,
                     onTap: () => context.push('/support'),
                   ),
+                  _SidebarItem(
+                    icon: Icons.settings_outlined,
+                    label: 'Settings & Timezone',
+                    isSelected: false,
+                    onTap: () => context.push('/settings'),
+                  ),
                 ],
               ),
             ),
           ),
-
+          const SizedBox(height: 12),
+          _buildTimezoneChip(context),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(12),
@@ -296,26 +321,34 @@ class _NavShellState extends State<NavShell> {
                 ),
               ),
               child: Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.emoji_events, color: Colors.black, size: 36),
-                    const SizedBox(width: 12),
-                    Column(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    height: 100,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'FIFA 2026',
-                          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 22),
-                        ),
-                        Text(
-                          'Fan Zone & Predictors',
-                          style: TextStyle(color: Colors.black.withOpacity(0.7), fontSize: 12),
+                        const Icon(Icons.emoji_events, color: Colors.black, size: 36),
+                        const SizedBox(width: 12),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Football Now',
+                              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 22),
+                            ),
+                            Text(
+                              'Fan Zone & Predictors',
+                              style: TextStyle(color: Colors.black.withOpacity(0.7), fontSize: 12),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -409,6 +442,14 @@ class _NavShellState extends State<NavShell> {
                       context.push('/support');
                     },
                   ),
+                  _buildDrawerItem(
+                    icon: Icons.settings_outlined,
+                    label: 'Settings & Timezone',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/settings');
+                    },
+                  ),
                 ],
               ),
             ),
@@ -441,7 +482,61 @@ class _NavShellState extends State<NavShell> {
       leading: Icon(icon),
       title: Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
       trailing: const Icon(Icons.chevron_right, size: 16),
-      onTap: onTap,
+      onTap: () {
+        AdService().recordClickAndMaybeShowRewardedAd(context, onUserEarnedReward: onTap);
+      },
+    );
+  }
+
+  Widget _buildTimezoneChip(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final tzState = ref.watch(timezoneProvider);
+    return InkWell(
+      onTap: () => context.push('/settings'),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: theme.colorScheme.primary.withOpacity(0.2)),
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: Image.network(
+                AppConstants.getFlagUrl(tzState.countryCode),
+                width: 22,
+                height: 14,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(Icons.public, size: 14),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tzState.selectedCountry,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    tzState.timezoneAbbreviation,
+                    style: theme.textTheme.labelSmall?.copyWith(color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.edit_location_outlined, size: 16, color: theme.colorScheme.primary),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -465,7 +560,9 @@ class _SidebarItem extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        AdService().recordClickAndMaybeShowRewardedAd(context, onUserEarnedReward: onTap);
+      },
       borderRadius: BorderRadius.circular(12),
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),

@@ -271,11 +271,11 @@ class _FavTeamCard extends ConsumerWidget {
             ),
             IconButton(
               icon: const Icon(Icons.chevron_right),
-              onPressed: () => context.go('/team/${team.id}'),
+              onPressed: () => context.go('/teams/team/${team.id}'),
             ),
           ],
         ),
-        onTap: () => context.go('/team/${team.id}'),
+        onTap: () => context.go('/teams/team/${team.id}'),
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/match.dart';
 import '../providers/match_provider.dart';
+import '../providers/timezone_provider.dart';
 import '../core/constants.dart';
 import '../core/theme.dart';
 import '../widgets/shimmer_loading.dart';
@@ -371,7 +372,7 @@ class _FanChallengesScreenState extends ConsumerState<FanChallengesScreen>
   }
 }
 
-class _PredictorMatchCard extends StatefulWidget {
+class _PredictorMatchCard extends ConsumerStatefulWidget {
   final Match match;
   final ThemeData theme;
   final bool isPredicted;
@@ -387,10 +388,10 @@ class _PredictorMatchCard extends StatefulWidget {
   });
 
   @override
-  State<_PredictorMatchCard> createState() => _PredictorMatchCardState();
+  ConsumerState<_PredictorMatchCard> createState() => _PredictorMatchCardState();
 }
 
-class _PredictorMatchCardState extends State<_PredictorMatchCard> {
+class _PredictorMatchCardState extends ConsumerState<_PredictorMatchCard> {
   String _selectedOutcome = 'H';
   int _homeScore = 1;
   int _awayScore = 1;
@@ -422,7 +423,7 @@ class _PredictorMatchCardState extends State<_PredictorMatchCard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                DateFormat('EEEE, MMM d • h:mm a').format(widget.match.kickoffTime),
+                _localKickoff(widget.match.kickoffTime),
                 style: const TextStyle(fontSize: 11, color: Colors.grey),
               ),
               if (widget.isPredicted)
@@ -608,5 +609,12 @@ class _PredictorMatchCardState extends State<_PredictorMatchCard> {
         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
       ),
     );
+  }
+
+  String _localKickoff(DateTime utcTime) {
+    final tzNotifier = ref.read(timezoneProvider.notifier);
+    final tzState = ref.read(timezoneProvider);
+    final local = tzNotifier.convertToLocal(utcTime);
+    return '${DateFormat('EEEE, MMM d \u2022 HH:mm').format(local)} ${tzState.timezoneAbbreviation}';
   }
 }

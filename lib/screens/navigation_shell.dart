@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/theme_provider.dart';
+import '../services/ad_service.dart';
 
 class NavigationShell extends ConsumerWidget {
   final Widget child;
@@ -21,17 +22,20 @@ class NavigationShell extends ConsumerWidget {
   }
 
   void _onItemTapped(int index, BuildContext context) {
-    switch (index) {
-      case 0:
-        context.go('/');
-        break;
-      case 1:
-        context.go('/teams');
-        break;
-      case 2:
-        context.go('/players');
-        break;
-    }
+    if (index == _getSelectedIndex(state.uri.path)) return;
+    AdService().recordClickAndMaybeShowRewardedAd(context, onUserEarnedReward: () {
+      switch (index) {
+        case 0:
+          context.go('/');
+          break;
+        case 1:
+          context.go('/teams');
+          break;
+        case 2:
+          context.go('/players');
+          break;
+      }
+    });
   }
 
   @override
@@ -48,7 +52,7 @@ class NavigationShell extends ConsumerWidget {
             const Icon(Icons.sports_soccer, size: 28, color: Colors.amber),
             const SizedBox(width: 10),
             Text(
-              'FIFA 2026 WORLD CUP',
+              'FOOTBALL NOW',
               style: GoogleFonts.rajdhani(
                 fontWeight: FontWeight.bold,
                 fontSize: 22,

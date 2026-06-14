@@ -24,6 +24,7 @@ import 'screens/fantasy_screen.dart';
 import 'screens/wc_journey_screen.dart';
 import 'screens/player_comparison_screen.dart';
 import 'screens/support_team_screen.dart';
+import 'screens/settings_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -178,6 +179,11 @@ final GoRouter _router = GoRouter(
       path: '/support',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const SupportTeamScreen(),
+    ),
+    GoRoute(
+      path: '/settings',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const SettingsScreen(),
     ),
   ],
 );

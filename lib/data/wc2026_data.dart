@@ -76,7 +76,7 @@ class WC2026Data {
       countryCode: 'us',
       capacity: 82500,
       host: 'FINAL',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/MetLife_Stadium_view_from_the_south_end_zone.jpg/1280px-MetLife_Stadium_view_from_the_south_end_zone.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop',
     ),
     WC2026Stadium(
       id: 'att',
@@ -86,7 +86,7 @@ class WC2026Data {
       countryCode: 'us',
       capacity: 80000,
       surface: 'Artificial Turf',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Cowboys_stadium_interior_2009.jpg/1280px-Cowboys_stadium_interior_2009.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1485324290208-fb19f8a9816d?w=800&auto=format&fit=crop',
     ),
     WC2026Stadium(
       id: 'sofi',
@@ -95,7 +95,7 @@ class WC2026Data {
       country: 'United States',
       countryCode: 'us',
       capacity: 70240,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/SoFi_Stadium_-_home_of_Los_Angeles_Rams_%26_Los_Angeles_Chargers.jpg/1280px-SoFi_Stadium_-_home_of_Los_Angeles_Rams_%26_Los_Angeles_Chargers.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800&auto=format&fit=crop',
     ),
     WC2026Stadium(
       id: 'levis',
@@ -104,7 +104,7 @@ class WC2026Data {
       country: 'United States',
       countryCode: 'us',
       capacity: 68500,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Levi%27s_Stadium_-_Santa_Clara%2C_California.jpg/1280px-Levi%27s_Stadium_-_Santa_Clara%2C_California.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1577223625856-7fde4979e8c0?w=800&auto=format&fit=crop',
     ),
     WC2026Stadium(
       id: 'lincoln',
@@ -113,7 +113,7 @@ class WC2026Data {
       country: 'United States',
       countryCode: 'us',
       capacity: 69328,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/LincolnFinancialField.jpg/1280px-LincolnFinancialField.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1563185367-170068426390?w=800&auto=format&fit=crop',
     ),
     WC2026Stadium(
       id: 'arrowhead',
@@ -122,7 +122,7 @@ class WC2026Data {
       country: 'United States',
       countryCode: 'us',
       capacity: 76416,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/Arrowhead_Stadium_-_2009.jpg/1280px-Arrowhead_Stadium_-_2009.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1595155731960-b1ee143dec79?w=800&auto=format&fit=crop',
     ),
     WC2026Stadium(
       id: 'gillette',
@@ -131,7 +131,7 @@ class WC2026Data {
       country: 'United States',
       countryCode: 'us',
       capacity: 65878,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Gillette_Stadium_-_2012.jpg/1280px-Gillette_Stadium_-_2012.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1510250297584-113bf550402e?w=800&auto=format&fit=crop',
     ),
     WC2026Stadium(
       id: 'lumen',
@@ -140,7 +140,7 @@ class WC2026Data {
       country: 'United States',
       countryCode: 'us',
       capacity: 68740,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Lumen_Field_exterior_-_2021.jpg/1280px-Lumen_Field_exterior_-_2021.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1477862096227-3a1bb3b08330?w=800&auto=format&fit=crop',
     ),
     WC2026Stadium(
       id: 'allegiant',
@@ -149,7 +149,7 @@ class WC2026Data {
       country: 'United States',
       countryCode: 'us',
       capacity: 65000,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Allegiant_Stadium.jpg/1280px-Allegiant_Stadium.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1599045118108-bf9954418b76?w=800&auto=format&fit=crop',
     ),
     WC2026Stadium(
       id: 'hardrock',
@@ -158,7 +158,7 @@ class WC2026Data {
       country: 'United States',
       countryCode: 'us',
       capacity: 64767,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Miami_Dolphins_-_Sun_Life_Stadium_-_9_Sep_2012.jpg/1280px-Miami_Dolphins_-_Sun_Life_Stadium_-_9_Sep_2012.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=800&auto=format&fit=crop',
     ),
     WC2026Stadium(
       id: 'nrg',
@@ -168,7 +168,7 @@ class WC2026Data {
       countryCode: 'us',
       capacity: 72220,
       surface: 'Retractable Roof',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/NRG_Stadium_Houston_Texas.jpg/1280px-NRG_Stadium_Houston_Texas.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1518005020951-eccb494ad742?w=800&auto=format&fit=crop',
     ),
     // ── CANADA ───────────────────────────────────────────────────────────────
     WC2026Stadium(
@@ -179,7 +179,7 @@ class WC2026Data {
       countryCode: 'ca',
       capacity: 54500,
       surface: 'Artificial Turf',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/BC_Place_-_Exterior.jpg/1280px-BC_Place_-_Exterior.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&auto=format&fit=crop',
     ),
     WC2026Stadium(
       id: 'bmofield',
@@ -188,7 +188,7 @@ class WC2026Data {
       country: 'Canada',
       countryCode: 'ca',
       capacity: 45736,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/BMO_Field_2016.jpg/1280px-BMO_Field_2016.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&auto=format&fit=crop',
     ),
     // ── MEXICO ───────────────────────────────────────────────────────────────
     WC2026Stadium(
@@ -199,7 +199,7 @@ class WC2026Data {
       countryCode: 'mx',
       capacity: 87523,
       host: 'OPENING MATCH',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Azteca_Stadium.jpg/1280px-Azteca_Stadium.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1504701954957-2390f80649b6?w=800&auto=format&fit=crop',
     ),
     WC2026Stadium(
       id: 'bbva',
@@ -208,7 +208,7 @@ class WC2026Data {
       country: 'Mexico',
       countryCode: 'mx',
       capacity: 53500,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Estadio_BBVA_Bancomer.jpg/1280px-Estadio_BBVA_Bancomer.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1524143986875-3b098d78b363?w=800&auto=format&fit=crop',
     ),
     WC2026Stadium(
       id: 'akron',
@@ -217,7 +217,7 @@ class WC2026Data {
       country: 'Mexico',
       countryCode: 'mx',
       capacity: 46232,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/EstadioAkron.jpg/1280px-EstadioAkron.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1519766304817-4f37bda74a27?w=800&auto=format&fit=crop',
     ),
   ];
 

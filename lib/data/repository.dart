@@ -152,29 +152,59 @@ class MockDataRepository implements DataRepository {
       positionLong = 'Midfielder';
     }
 
+    // Use multiple hash mix passes for better distribution
     final int seed = p.name.hashCode;
+    final int seed2 = (seed ^ (seed >> 16)) * 0x45d9f3b;
+    final int seed3 = (seed2 ^ (seed2 >> 16)) * 0x45d9f3b;
+    final int s = seed3.abs();
+
     int goals = 0;
     int assists = 0;
-    if (p.position == 'FWD') {
-      goals = (seed.abs() % 6); // 0 to 5 goals
-      assists = ((seed.abs() >> 2) % 4); // 0 to 3 assists
-    } else if (p.position == 'MID') {
-      goals = (seed.abs() % 3); // 0 to 2 goals
-      assists = ((seed.abs() >> 2) % 6); // 0 to 5 assists
-    } else if (p.position == 'DEF') {
-      goals = (seed.abs() % 2); // 0 to 1 goals
-      assists = ((seed.abs() >> 2) % 3); // 0 to 2 assists
-    }
-    
-    final int matchesPlayed = 3 + (seed.abs() % 3);
-    final int minutesPlayed = matchesPlayed * 90 - (seed.abs() % 45);
-    final int yellowCards = (seed.abs() % 3) == 0 ? 1 : 0;
-    final int redCards = (seed.abs() % 15) == 0 ? 1 : 0;
 
-    int rating = 70 + (seed.abs() % 20); // 70 to 89
-    if (p.name == 'Lionel Messi' || p.name == 'Cristiano Ronaldo' || p.name == 'Kylian Mbappé' || p.name == 'Jude Bellingham' || p.name == 'Erling Haaland') {
-      rating = 92 + (seed.abs() % 5); // 92 to 96
+    // Realistic tournament stats per position
+    if (p.position == 'FWD') {
+      goals   = (s % 9);               // 0–8 goals
+      assists = ((s >> 5) % 5);        // 0–4 assists
+    } else if (p.position == 'MID') {
+      goals   = ((s >> 3) % 5);        // 0–4 goals
+      assists = ((s >> 7) % 8);        // 0–7 assists
+    } else if (p.position == 'DEF') {
+      goals   = ((s >> 11) % 3);       // 0–2 goals
+      assists = ((s >> 13) % 4);       // 0–3 assists
+    } else { // GK
+      goals   = 0;
+      assists = ((s >> 9) % 2);        // 0–1 assists
     }
+
+    // Boost named stars with high but realistic values
+    final lname = p.name.toLowerCase();
+    if (lname.contains('messi'))       { goals = 7; assists = 5; }
+    else if (lname.contains('ronaldo'))     { goals = 6; assists = 3; }
+    else if (lname.contains('mbappé') || lname.contains('mbappe')) { goals = 8; assists = 4; }
+    else if (lname.contains('bellingham'))  { goals = 4; assists = 6; }
+    else if (lname.contains('haaland'))     { goals = 7; assists = 2; }
+    else if (lname.contains('vinicius') || lname.contains('vini')) { goals = 5; assists = 4; }
+    else if (lname.contains('salah'))       { goals = 4; assists = 3; }
+    else if (lname.contains('kane'))        { goals = 5; assists = 3; }
+    else if (lname.contains('pedri'))       { goals = 2; assists = 6; }
+    else if (lname.contains('modric'))      { goals = 1; assists = 5; }
+
+    int rating = 65 + (s % 25);        // 65–89 base
+    if (lname.contains('messi') || lname.contains('ronaldo') ||
+        lname.contains('mbappé') || lname.contains('mbappe')) {
+      rating = 93 + ((s >> 2) % 4);    // 93–96
+    } else if (lname.contains('bellingham') || lname.contains('haaland') ||
+               lname.contains('vinicius') || lname.contains('vini') ||
+               lname.contains('salah') || lname.contains('kane') ||
+               lname.contains('pedri') || lname.contains('modric')) {
+      rating = 88 + ((s >> 4) % 5);    // 88–92
+    }
+
+    // Derived match stats
+    final int matchesPlayed = 3 + (s % 4);                    // 3–6
+    final int minutesPlayed = matchesPlayed * 85 + (s % 45);  // realistic mins
+    final int yellowCards   = ((s >> 17) % 4) == 0 ? 1 : 0;  // ~25% chance
+    final int redCards      = ((s >> 21) % 12) == 0 ? 1 : 0; // ~8% chance
 
     // Try to find matching player in ESPN roster cache to copy photoUrl & details
     String photoUrl = '';
@@ -408,12 +438,20 @@ class MockDataRepository implements DataRepository {
     }
   }
 
+  // Reverse lookup: ESPN numeric ID -> 3-letter team code
+  static final Map<String, String> _espnIdToTeamCode = {
+    for (final entry in _teamCodeToEspnId.entries) entry.value: entry.key
+  };
+
   @override
   Future<List<Player>> getPlayersByTeam(String teamId) async {
     try {
+      // If teamId is a numeric ESPN ID, resolve it to the 3-letter code first
+      final resolvedId = _espnIdToTeamCode[teamId] ?? teamId;
+
       final teams = await getTeams();
       final team = teams.firstWhere(
-        (t) => t.code.toUpperCase() == teamId.toUpperCase() || t.name.toUpperCase() == teamId.toUpperCase(),
+        (t) => t.code.toUpperCase() == resolvedId.toUpperCase() || t.name.toUpperCase() == resolvedId.toUpperCase(),
       );
       final cacheKey = team.code.toUpperCase();
       if (_rosterCache.containsKey(cacheKey)) {

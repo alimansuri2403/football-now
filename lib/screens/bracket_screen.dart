@@ -105,7 +105,8 @@ class _BracketView extends StatelessWidget {
     if (s.contains('16') || s.contains('r16')) return 'Round of 16';
     if (s.contains('quarter') || s.contains('qf')) return 'Quarterfinal';
     if (s.contains('semi') || s.contains('sf')) return 'Semifinal';
-    if (s.contains('final') || s.contains('f')) return 'Final';
+    if (s.contains('final') && !s.contains('semi')) return 'Final';
+    if (s.contains(' f') || s == 'f') return 'Final';
     return stage;
   }
 

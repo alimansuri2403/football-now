@@ -6,6 +6,7 @@ import '../models/match.dart';
 import '../models/team.dart';
 import '../providers/match_provider.dart';
 import '../providers/team_providers.dart';
+import '../providers/timezone_provider.dart';
 import '../core/constants.dart';
 import '../core/theme.dart';
 import '../widgets/shimmer_loading.dart';
@@ -19,6 +20,13 @@ class WcJourneyScreen extends ConsumerStatefulWidget {
 
 class _WcJourneyScreenState extends ConsumerState<WcJourneyScreen> {
   String? _selectedTeamCode;
+
+  String _localMatchDate(DateTime utcTime) {
+    final tzNotifier = ref.read(timezoneProvider.notifier);
+    final tzState = ref.read(timezoneProvider);
+    final local = tzNotifier.convertToLocal(utcTime);
+    return '${DateFormat('MMM d, y').format(local)} ${tzState.timezoneAbbreviation}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -361,7 +369,7 @@ class _WcJourneyScreenState extends ConsumerState<WcJourneyScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                DateFormat('MMM d, y').format(m.kickoffTime),
+                _localMatchDate(m.kickoffTime),
                 style: const TextStyle(fontSize: 10, color: Colors.grey),
               ),
               if (isLive)

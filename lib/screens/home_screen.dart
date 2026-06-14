@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../providers/match_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/timezone_provider.dart';
 import '../widgets/live_score_card.dart';
 import '../widgets/shimmer_loading.dart';
 import '../core/constants.dart';
@@ -41,18 +42,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _loadBannerAd() {
     if (kIsWeb) {
-      // On web, AdMob native SDK is not available.
-      // We immediately set loaded to show the web simulator banner.
-      setState(() {
-        _isBannerAdLoaded = true;
-      });
+      setState(() { _isBannerAdLoaded = true; });
       return;
     }
     _bannerAd = AdService().createBannerAd(
       onAdLoaded: (ad) {
-        setState(() {
-          _isBannerAdLoaded = true;
-        });
+        setState(() { _isBannerAdLoaded = true; });
       },
       onAdFailedToLoad: (ad, error) {
         ad.dispose();
@@ -76,9 +71,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
-    // Providers
     final matchState = ref.watch(matchProvider);
+    final tzState = ref.watch(timezoneProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -86,43 +80,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           onRefresh: () => ref.read(matchProvider.notifier).fetchMatches(),
           child: CustomScrollView(
             slivers: [
-              // Beautiful Header App Bar
+              // Header App Bar
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
                         children: [
-                          Text(
-                            'FIFA WORLD CUP 2026',
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2.0,
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              height: 54,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Scoreboard & Stats',
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
+                          const SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'FIFA WORLD CUP 2026',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 2.0,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Scoreboard & Stats',
+                                style: theme.textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      // Timezone chip + Theme Switcher
+                      Row(
+                        children: [
+                          _TimezoneChip(tzState: tzState),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            onPressed: () {
+                              ref.read(themeModeProvider.notifier).toggleTheme();
+                            },
+                            icon: Icon(
+                              isDark ? Icons.light_mode : Icons.dark_mode,
+                              size: 28,
                             ),
                           ),
                         ],
                       ),
-                      // Theme Switcher
-                      IconButton(
-                        onPressed: () {
-                          ref.read(themeModeProvider.notifier).toggleTheme();
-                        },
-                        icon: Icon(
-                          isDark ? Icons.light_mode : Icons.dark_mode,
-                          size: 28,
-                        ),
-                      )
                     ],
                   ),
                 ),
@@ -196,7 +210,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 width: 280,
                                 child: Stack(
                                   children: [
-                                    // Background Image
                                     Positioned.fill(
                                       child: Image.network(
                                         stadium.imageUrl,
@@ -207,7 +220,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         ),
                                       ),
                                     ),
-                                    // Gradient Overlay
                                     Positioned.fill(
                                       child: Container(
                                         decoration: BoxDecoration(
@@ -222,66 +234,62 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         ),
                                       ),
                                     ),
-                                    // Content
-                                    Positioned.fill(
-                                      child: Container(), // Spacer layer/layout provider
-                                    ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        if (stadium.host != null)
-                                          Container(
-                                            margin: const EdgeInsets.only(bottom: 6),
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: Colors.amber,
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              stadium.host!,
-                                              style: const TextStyle(
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 10,
+                                    Padding(
+                                      padding: const EdgeInsets.all(16.0),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        children: [
+                                          if (stadium.host != null)
+                                            Container(
+                                              margin: const EdgeInsets.only(bottom: 6),
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.amber,
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: Text(
+                                                stadium.host!,
+                                                style: const TextStyle(
+                                                  color: Colors.black,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 10,
+                                                ),
                                               ),
                                             ),
+                                          Text(
+                                            stadium.name,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
                                           ),
-                                        Text(
-                                          stadium.name,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '${stadium.city}, ${stadium.country}',
+                                            style: TextStyle(
+                                              color: Colors.white.withOpacity(0.8),
+                                              fontSize: 12,
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '${stadium.city}, ${stadium.country}',
-                                          style: TextStyle(
-                                            color: Colors.white.withOpacity(0.8),
-                                            fontSize: 12,
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Capacity: ${NumberFormat('#,###').format(stadium.capacity)}',
+                                            style: TextStyle(
+                                              color: Colors.white.withOpacity(0.6),
+                                              fontSize: 10,
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Capacity: ${NumberFormat('#,###').format(stadium.capacity)}',
-                                          style: TextStyle(
-                                            color: Colors.white.withOpacity(0.6),
-                                            fontSize: 10,
-                                          ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 32),
@@ -300,9 +308,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     child: TextField(
                       onChanged: (val) {
-                        setState(() {
-                          _searchQuery = val.toLowerCase();
-                        });
+                        setState(() { _searchQuery = val.toLowerCase(); });
                       },
                       decoration: const InputDecoration(
                         hintText: 'Search teams or groups...',
@@ -461,7 +467,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             // Left: Date / Group / Countdown column
             SizedBox(
-              width: 90,
+              width: 95,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -477,10 +483,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       match.kickoffTime.isAfter(_now))
                     _CountdownWidget(kickoff: match.kickoffTime, now: _now, theme: theme)
                   else
-                    Text(
-                      DateFormat('MMM d, HH:mm').format(match.dateTime),
-                      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
-                    ),
+                    _LocalizedTimeText(kickoffTime: match.kickoffTime, theme: theme),
                 ],
               ),
             ),
@@ -556,7 +559,72 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-/// Stateless countdown widget — parent must rebuild every second
+// ── Timezone chip shown in header ───────────────────────────────────────────────
+class _TimezoneChip extends ConsumerWidget {
+  final TimezoneState tzState;
+  const _TimezoneChip({required this.tzState});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      onTap: () => context.push('/settings'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: theme.colorScheme.primary.withOpacity(0.25)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: Image.network(
+                AppConstants.getFlagUrl(tzState.countryCode),
+                width: 18,
+                height: 12,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(Icons.public, size: 12),
+              ),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              tzState.timezoneAbbreviation,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 3),
+            Icon(Icons.expand_more, size: 14, color: theme.colorScheme.primary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Localized time text that rebuilds when timezone changes ─────────────────────
+class _LocalizedTimeText extends ConsumerWidget {
+  final DateTime kickoffTime;
+  final ThemeData theme;
+  const _LocalizedTimeText({required this.kickoffTime, required this.theme});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tzState = ref.watch(timezoneProvider);
+    final tzNotifier = ref.read(timezoneProvider.notifier);
+    final local = tzNotifier.convertToLocal(kickoffTime);
+    return Text(
+      '${DateFormat('MMM d, HH:mm').format(local)} ${tzState.timezoneAbbreviation}',
+      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+    );
+  }
+}
+
+// ── Countdown widget ────────────────────────────────────────────────────────────
 class _CountdownWidget extends StatelessWidget {
   final DateTime kickoff;
   final DateTime now;

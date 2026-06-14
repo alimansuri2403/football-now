@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../data/wc2026_data.dart';
 import '../models/match.dart';
 import '../providers/match_provider.dart';
+import '../providers/timezone_provider.dart';
 import '../core/constants.dart';
 import '../core/theme.dart';
 
@@ -16,6 +17,19 @@ class StadiumExplorerScreen extends ConsumerStatefulWidget {
 
 class _StadiumExplorerScreenState extends ConsumerState<StadiumExplorerScreen> {
   String _searchQuery = '';
+
+  String _localDate(BuildContext context, DateTime utcTime) {
+    final tzNotifier = ref.read(timezoneProvider.notifier);
+    final local = tzNotifier.convertToLocal(utcTime);
+    return DateFormat('MMM d').format(local);
+  }
+
+  String _localTime(BuildContext context, DateTime utcTime) {
+    final tzNotifier = ref.read(timezoneProvider.notifier);
+    final tzState = ref.read(timezoneProvider);
+    final local = tzNotifier.convertToLocal(utcTime);
+    return '${DateFormat('HH:mm').format(local)} ${tzState.timezoneAbbreviation}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -301,14 +315,14 @@ class _StadiumExplorerScreenState extends ConsumerState<StadiumExplorerScreen> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      DateFormat('MMM d').format(match.kickoffTime),
+                                      _localDate(context, match.kickoffTime),
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: theme.colorScheme.primary,
                                       ),
                                     ),
                                     Text(
-                                      DateFormat('h:mm a').format(match.kickoffTime),
+                                      _localTime(context, match.kickoffTime),
                                       style: const TextStyle(fontSize: 10, color: Colors.grey),
                                     ),
                                   ],
