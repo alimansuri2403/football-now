@@ -85,7 +85,7 @@ class EspnApiService {
         debugPrint('ESPN all fixtures returned empty, using local fallback.');
         return _generateLocalMockFixtures();
       }
-      return _injectMockFinishedResults(list);
+      return list;
     } catch (e) {
       debugPrint('ESPN all fixtures error: $e, using local fallback.');
       return _generateLocalMockFixtures();
@@ -362,32 +362,12 @@ class EspnApiService {
     final slug = season['slug']?.toString() ?? '';
     final stage = _stageFromSlug(slug);
 
-    // Group (extract from name if available)
-    final eventName = event['name']?.toString() ?? '';
-    String? group;
-    final groupMatch = RegExp(r'Group ([A-L])').firstMatch(eventName);
-    if (groupMatch != null) group = groupMatch.group(1);
+    final groupName = _countryToGroup[homeAbbr] ?? _countryToGroup[awayAbbr];
 
     final rawMatch = Match(
       id: id,
-      homeTeam: Team(
-        id: homeTeamData['id']?.toString() ?? homeAbbr,
-        name: homeTeamName,
-        code: homeAbbr,
-        flagCode: homeAbbr.toLowerCase(),
-        group: group ?? '',
-        fifaRanking: _fifaRank(homeAbbr),
-        coach: '',
-      ),
-      awayTeam: Team(
-        id: awayTeamData['id']?.toString() ?? awayAbbr,
-        name: awayTeamName,
-        code: awayAbbr,
-        flagCode: awayAbbr.toLowerCase(),
-        group: group ?? '',
-        fifaRanking: _fifaRank(awayAbbr),
-        coach: '',
-      ),
+      homeTeam: _buildTeam(homeAbbr, homeTeamName, homeTeamData['id']?.toString() ?? ''),
+      awayTeam: _buildTeam(awayAbbr, awayTeamName, awayTeamData['id']?.toString() ?? ''),
       homeScore: homeScore,
       awayScore: awayScore,
       status: status,
@@ -396,9 +376,36 @@ class EspnApiService {
       venue: venueName,
       city: city,
       stage: stage,
-      group: group,
+      group: groupName,
     );
     return _populateStatsAndEvents(rawMatch);
+  }
+
+  Team _buildTeam(String abbr, String displayName, String id) {
+    try {
+      final staticTeam = WC2026Data.teams.firstWhere(
+        (t) => t.code.toUpperCase() == abbr.toUpperCase()
+      );
+      return Team(
+        id: id.isNotEmpty ? id : abbr,
+        name: staticTeam.name,
+        code: abbr,
+        flagCode: staticTeam.flagCode,
+        group: _countryToGroup[abbr.toUpperCase()] ?? '',
+        fifaRanking: staticTeam.fifaRanking,
+        coach: staticTeam.coach,
+      );
+    } catch (_) {
+      return Team(
+        id: id.isNotEmpty ? id : abbr,
+        name: displayName,
+        code: abbr,
+        flagCode: abbr.toLowerCase(),
+        group: _countryToGroup[abbr.toUpperCase()] ?? '',
+        fifaRanking: _fifaRank(abbr),
+        coach: '',
+      );
+    }
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
